@@ -147,5 +147,5 @@ mod 'netstat',
     ref: '64bcee0'
 
 mod 'cd4pe',
-    git: 'https://github.com/puppetlabs/puppetlabs-cd4pe.git',
+    git: 'https://github.com/kreeuwijk/puppetlabs-cd4pe.git',
     ref: 'b1eb378'
