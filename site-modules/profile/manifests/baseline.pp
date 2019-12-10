@@ -3,7 +3,21 @@
 
 class profile::base {
 
-  $agentruninterval = 14400
+  $agentruninterval = lookup('puppet_agent_run_interval')
+  $agentversion = lookup('puppet_agent_version')
+
+  if versioncmp($facts['aio_agent_version'],$agentversion) == -1 {
+    class { 'puppet_agent':
+      package_version => $agentversion
+    }
+  }
+
+  @@host { $trusted['certname'] :
+    ensure => 'present',
+    ip     => $facts['ipaddress']
+  }
+  
+  host <<| |>> 
 
   ini_setting {
     default:
@@ -37,6 +51,10 @@ class profile::base {
   case $::osfamily {
     default: { } # for OS's not listed, do nothing
     'RedHat': {
+      $timezone = lookup('timezone.linux')
+      class { 'timezone':
+        timezone => $timezone,
+      }
       ini_setting { 'yum[main:installonly_limit]':
         ensure            => present,
         section           => 'main',
@@ -48,6 +66,10 @@ class profile::base {
       }
     }
     'windows': {
+      $timezone = lookup('timezone.windows')
+      class { 'timezone_win':
+        timezone => $timezone,
+      }
       pspackageprovider {'Nuget':
         ensure   => 'present',
       }
