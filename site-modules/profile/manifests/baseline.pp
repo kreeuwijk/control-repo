@@ -16,8 +16,8 @@ class profile::base {
     ensure => 'present',
     ip     => $facts['ipaddress']
   }
-  
-  host <<| |>> 
+
+  Host <<| |>>
 
   ini_setting {
     default:
