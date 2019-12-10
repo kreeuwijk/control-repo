@@ -46,6 +46,7 @@ mod 'puppetlabs-ntp', '7.4.0'
 mod 'puppetlabs-panos', '1.2.1'
 mod 'puppetlabs-pipelines', '1.0.0'
 mod 'puppetlabs-powershell', '2.2.0'
+mod 'puppetlabs-puppet_agent', '2.2.2'
 mod 'puppetlabs-puppet_authorization', '0.5.0'
 mod 'puppetlabs-puppetserver_gem', '1.1.1'
 mod 'puppetlabs-reboot', '2.1.2'
@@ -63,7 +64,7 @@ mod 'puppetlabs-vcsrepo', '2.4.0'
 
 # Forge Community Modules
 mod 'saz-timezone', '5.1.1'
-mod 'ncorrare-windowstime', '0.4.3'
+mod 'jpi-timezone_win', '0.1.6'
 mod 'geoffwilliams-windows_firewall', '0.3.0'
 
 mod 'WhatsARanjit-node_manager', '0.7.1'
