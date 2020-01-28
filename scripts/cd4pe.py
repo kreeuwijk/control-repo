@@ -12,7 +12,7 @@ from cd4pe_client import CD4PE
 CD4PE_CLIENT = None
 parser       = argparse.ArgumentParser(description='Optional app description')
 parser.add_argument('--commitSha', type=str, help='the Git commit SHA to check')
-parser.add_argument('--stage', type=str, help='the pipeline stage to report')
+parser.add_argument('--stagename', type=str, help='the pipeline stage to report')
 parser.add_argument('--user', type=str, help='the CD4PE username')
 parser.add_argument('--pwd', type=str, help='the CD4PE user password')
 parser.add_argument('--endpoint', type=str, help='the CD4PE endpoint')
@@ -20,7 +20,7 @@ parser.add_argument('--repo', type=str, help='the (control)repo to parse')
 
 args      = parser.parse_args()
 commitSha = args.commitSha
-stage     = args.stage
+stagename = args.stagename
 user      = args.user
 pwd       = args.pwd
 endpoint  = args.endpoint
@@ -148,4 +148,4 @@ def approve_deployment(deployment_id):
 # Start of code execution
 connect_cd4pe(endpoint=endpoint, username=user, password=pwd)
 pipeline_id = search_latest_pipeline(repo_name=repo, gitCommitId=commitSha)
-pipeline_report = report_pipeline_stages(repo_name=repo, pipeline_id=pipeline_id, pipeline_stage=stage)
+pipeline_report = report_pipeline_stages(repo_name=repo, pipeline_id=pipeline_id, pipeline_stage=stagename)
