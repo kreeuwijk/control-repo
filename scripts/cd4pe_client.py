@@ -1,5 +1,5 @@
 import logging
-from urllib.parse import urlparse
+from urllib.parse import urlencode
 import requests
 
 # pylint: disable=too-many-public-methods
