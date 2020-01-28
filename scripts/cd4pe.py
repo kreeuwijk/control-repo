@@ -12,10 +12,20 @@ from cd4pe_client import CD4PE
 CD4PE_CLIENT = None
 parser       = argparse.ArgumentParser(description='Optional app description')
 parser.add_argument('--commitSha', type=str, help='the Git commit SHA to check')
+parser.add_argument('--stage', type=str, help='the pipeline stage to report')
+parser.add_argument('--user', type=str, help='the CD4PE username')
+parser.add_argument('--pwd', type=str, help='the CD4PE user password')
+parser.add_argument('--endpoint', type=str, help='the CD4PE endpoint')
+parser.add_argument('--repo', type=str, help='the (control)repo to parse')
 
-args         = parser.parse_args()
-commitSha    = args.commitSha
-LOGGER       = logging.getLogger(__name__)
+args      = parser.parse_args()
+commitSha = args.commitSha
+stage     = args.stage
+user      = args.user
+pwd       = args.pwd
+endpoint  = args.endpoint
+repo      = args.repo
+LOGGER    = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
 def print_json(content):
@@ -42,44 +52,38 @@ def switcher_jobstatus(job_status):
     }
     return switcher.get(job_status, "unknown status: " + str(job_status))
 
-def report_pipeline_stages(repo_name, pipeline_id):
+def report_pipeline_stages(repo_name, pipeline_id, pipeline_stage):
     response = CD4PE_CLIENT.get_pipeline(repo_name=repo_name, pipeline_id=pipeline_id).json()
-    f = open("cd4pe_pipeline.json","w+")
-    f.write(json.dumps(response, indent=2))
-    f.close
     no_of_stages = len(response['stages'])
     print("Number of stages in pipeline: " + str(no_of_stages))
-    pipeline_failure = False
     for x in range(no_of_stages):
         stage_failure = False
         stage = response['stages'][x]
-        print("Stage " + str(stage['stageNum']) + ": " + stage['stageName'] )
-        no_of_stage_jobs = len(stage['destinations'])
-        print("  Number of jobs in stage: " + str(no_of_stage_jobs))
-        for y in range(no_of_stage_jobs):
-            stage_job = stage['destinations'][y]
-            if 'vmJobEvent' in stage_job:
-                print("  Job name: " + stage_job['vmJobEvent']['jobName'])
-                print("  Job status: " + switcher_jobstatus(stage_job['vmJobEvent']['jobStatus']))
-                if switcher_jobstatus(stage_job['vmJobEvent']['jobStatus']) != 'Success':
-                    stage_failure = True
-            elif 'deploymentAppEvent' in stage_job:
-                print("  Deployment: " + stage_job['deploymentAppEvent']['deploymentPlanName'] + " to " + stage_job['deploymentAppEvent']['targetBranch'])
-                print("  Deployment status: " + stage_job['deploymentAppEvent']['deploymentState'] )
-                if (stage_job['deploymentAppEvent']['deploymentState'] != 'DONE' and stage_job['deploymentAppEvent']['deploymentState'] != 'RUNNING'):
-                    stage_failure = True
-            elif 'peImpactAnalysisEvent' in stage_job:
-                print("  Impact Analysis: on " + str(len(stage_job['peImpactAnalysisEvent']['environments'])) + " environments")
-                print("  Impact Analysis status: " + stage_job['peImpactAnalysisEvent']['state'])
-                if stage_job['peImpactAnalysisEvent']['state'] != 'DONE':
-                    stage_failure = True
-        pipeline_failure = True if (stage_failure == True) else pipeline_failure
-        result = "Stage succeeded" if (stage_failure == False) else "Stage failed"
-        print(result)
-    result = "Pipeline succeeded" if (pipeline_failure == False) else "Pipeline failed"
-    print(result)
-    response = None
-    return result
+        if stage['stageName'] == pipeline_stage:
+            print("Stage " + str(stage['stageNum']) + ": " + stage['stageName'] )
+            no_of_stage_jobs = len(stage['destinations'])
+            print("  Number of jobs in stage: " + str(no_of_stage_jobs))
+            for y in range(no_of_stage_jobs):
+                stage_job = stage['destinations'][y]
+                if 'vmJobEvent' in stage_job:
+                    print("  Job name: " + stage_job['vmJobEvent']['jobName'])
+                    print("  Job status: " + switcher_jobstatus(stage_job['vmJobEvent']['jobStatus']))
+                    if switcher_jobstatus(stage_job['vmJobEvent']['jobStatus']) != 'Success':
+                        stage_failure = True
+                elif 'deploymentAppEvent' in stage_job:
+                    print("  Deployment: " + stage_job['deploymentAppEvent']['deploymentPlanName'] + " to " + stage_job['deploymentAppEvent']['targetBranch'])
+                    print("  Deployment status: " + stage_job['deploymentAppEvent']['deploymentState'] )
+                    if stage_job['deploymentAppEvent']['deploymentState'] != 'DONE':
+                        stage_failure = True
+                elif 'peImpactAnalysisEvent' in stage_job:
+                    print("  Impact Analysis: on " + str(len(stage_job['peImpactAnalysisEvent']['environments'])) + " environments")
+                    print("  Impact Analysis status: " + stage_job['peImpactAnalysisEvent']['state'])
+                    if stage_job['peImpactAnalysisEvent']['state'] != 'DONE':
+                        stage_failure = True
+            result = "Stage succeeded" if (stage_failure == False) else "Stage failed"
+            print(result)
+            response = None
+            return result
 
 def get_IA_from_pipeline(repo_name, pipeline_id):
     response = CD4PE_CLIENT.get_pipeline(repo_name=repo_name, pipeline_id=pipeline_id).json()
@@ -142,20 +146,6 @@ def approve_deployment(deployment_id):
     return response
 
 # Start of code execution
-user = 'kevin.reeuwijk@puppet.com'
-pwd = 'Pupp3tL@bs!'
-endpoint = 'http://ec2-34-222-104-195.us-west-2.compute.amazonaws.com:8080'
-repo = 'control-repo'
-
 connect_cd4pe(endpoint=endpoint, username=user, password=pwd)
 pipeline_id = search_latest_pipeline(repo_name=repo, gitCommitId=commitSha)
-pipeline_report = report_pipeline_stages(repo_name=repo, pipeline_id=pipeline_id)
-if pipeline_report == 'Pipeline succeeded':
-    IA = get_IA_from_pipeline(repo_name=repo, pipeline_id=pipeline_id)
-    if IA['Status'] == "DONE":
-        report = get_impact_analysis_node_report(impact_analysis_id=IA['Id'])
-
-    if report == 'Impact Analysis: safe':
-        print('Approving production deployment...')
-        pending_approvals = get_pending_approvals(repo_name=repo, pipeline_id=pipeline_id)
-        approve_deployment(deployment_id=pending_approvals['production'])
+pipeline_report = report_pipeline_stages(repo_name=repo, pipeline_id=pipeline_id, pipeline_stage=stage)
