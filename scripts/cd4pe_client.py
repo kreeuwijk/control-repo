@@ -1,10 +1,6 @@
 import logging
+from urllib.parse import urlparse
 import requests
-
-try:
-    from urllib.parse import urlparse
-except ImportError:
-     from urlparse import urlparse
 
 # pylint: disable=too-many-public-methods
 class CD4PE:
