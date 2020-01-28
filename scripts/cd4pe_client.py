@@ -72,6 +72,7 @@ class CD4PE:
             raise Exception('No logged in user, cannot perform operation')
         owner = self.session['workspace'] if 'workspace' in self.session else self.session['username']
         resource = '/' + owner + '/ajax'
+        CD4PE.api_ajax.owner = owner
         return self.api(resource=resource, op=op, params=params, content=content, method=method)
 
     def login(self, email, passwd):

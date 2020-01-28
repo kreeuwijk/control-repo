@@ -1,4 +1,5 @@
 hieradata/nodes/example-puppet-master.yaml
+/scripts/__pycache__
 /modules
 /build
 /.tmp

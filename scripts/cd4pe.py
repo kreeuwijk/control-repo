@@ -7,6 +7,7 @@ import json
 import logging
 import argparse
 import base64
+import requests
 from cd4pe_client import CD4PE
 
 CD4PE_CLIENT = None
@@ -40,10 +41,12 @@ def search_latest_pipeline(repo_name, gitCommitId):
     response = CD4PE_CLIENT.list_trigger_events(repo_name=repo_name).json()
     for x in range(len(response['rows'])):
         if response['rows'][x]['commitId'] == gitCommitId:
-            pipeline_id = response['rows'][x]['pipelineId']
-            print( "Pipeline #: " + str(response['rows'][x]['id']) )
+            result = {}
+            result['id'] = response['rows'][x]['pipelineId']
+            result['eventId'] = response['rows'][x]['id']
+            print( "Pipeline #: " + str(result['eventId']))
             response = None
-            return pipeline_id
+            return result
 
 def switcher_jobstatus(job_status):
     switcher = {
@@ -61,6 +64,7 @@ def report_pipeline_stages(repo_name, pipeline_id, pipeline_stage):
         stage = response['stages'][x]
         if stage['stageName'] == pipeline_stage:
             print("Stage " + str(stage['stageNum']) + ": " + stage['stageName'] )
+            data['build']['queue_id'] = stage['stageNum']
             no_of_stage_jobs = len(stage['destinations'])
             print("  Number of jobs in stage: " + str(no_of_stage_jobs))
             for y in range(no_of_stage_jobs):
@@ -68,19 +72,27 @@ def report_pipeline_stages(repo_name, pipeline_id, pipeline_stage):
                 if 'vmJobEvent' in stage_job:
                     print("  Job name: " + stage_job['vmJobEvent']['jobName'])
                     print("  Job status: " + switcher_jobstatus(stage_job['vmJobEvent']['jobStatus']))
+                    data['build']['timestamp'] = stage_job['vmJobEvent']['eventTime']
                     if switcher_jobstatus(stage_job['vmJobEvent']['jobStatus']) != 'Success':
                         stage_failure = True
                 elif 'deploymentAppEvent' in stage_job:
                     print("  Deployment: " + stage_job['deploymentAppEvent']['deploymentPlanName'] + " to " + stage_job['deploymentAppEvent']['targetBranch'])
                     print("  Deployment status: " + stage_job['deploymentAppEvent']['deploymentState'] )
+                    data['build']['timestamp'] = stage_job['deploymentAppEvent']['eventTime']
                     if stage_job['deploymentAppEvent']['deploymentState'] != 'DONE':
                         stage_failure = True
                 elif 'peImpactAnalysisEvent' in stage_job:
                     print("  Impact Analysis: on " + str(len(stage_job['peImpactAnalysisEvent']['environments'])) + " environments")
                     print("  Impact Analysis status: " + stage_job['peImpactAnalysisEvent']['state'])
+                    data['build']['timestamp'] = stage_job['peImpactAnalysisEvent']['eventTime']
                     if stage_job['peImpactAnalysisEvent']['state'] != 'DONE':
                         stage_failure = True
-            result = "Stage succeeded" if (stage_failure == False) else "Stage failed"
+            if stage_failure == True:
+                result = "Stage failed"
+                data['build']['status'] = 'FAILURE'
+            else:
+                result = "Stage succeeded"
+                data['build']['status'] = 'SUCCESS'
             print(result)
             response = None
             return result
@@ -147,9 +159,37 @@ def approve_deployment(deployment_id):
 
 # Start of code execution
 connect_cd4pe(endpoint=endpoint, username=user, password=pwd)
-pipeline_id = search_latest_pipeline(repo_name=repo, gitCommitId=commitSha)
-pipeline_report = report_pipeline_stages(repo_name=repo, pipeline_id=pipeline_id, pipeline_stage=stagename)
+pipeline = search_latest_pipeline(repo_name=repo, gitCommitId=commitSha)
+buildinfo = CD4PE_CLIENT.get_pipeline(repo_name=repo, pipeline_id=pipeline['id']).json()
+
+data = {}
+data['name'] = 'cd4pe-pipeline'
+data['display_name'] = 'cd4pe-pipeline'
+data['build'] = {}
+data['url'] = "main/repositories/" + repo + "?pipelineId=" + str(pipeline['id'])
+data['build']['full_url'] = endpoint + "/" + CD4PE_CLIENT.api_ajax.owner + "/repositories/" + repo + "?pipelineId=" + str(pipeline['id']) + "&eventId=" + str(pipeline['eventId'])
+data['build']['number'] = pipeline['eventId']
+data['build']['phase'] = stagename
+data['build']['url'] = "/" + CD4PE_CLIENT.api_ajax.owner + "/repositories/" + repo + "?pipelineId=" + str(pipeline['id']) + "&eventId=" + str(pipeline['eventId'])
+data['scm'] = {}
+data['scm']['url'] = buildinfo['buildStage']['imageEvent']['repoUrl']
+data['scm']['branch'] = buildinfo['buildStage']['imageEvent']['branch']
+data['scm']['commit'] = buildinfo['buildStage']['imageEvent']['commitId']
+data['scm']['changes'] = []
+data['scm']['culprits'] = []
+data['artifacts'] = {}
+
+pipeline_report = report_pipeline_stages(repo_name=repo, pipeline_id=pipeline['id'], pipeline_stage=stagename)
 if stagename == 'Impact Analysis':
-    IA = get_IA_from_pipeline(repo_name=repo, pipeline_id=pipeline_id)
+    IA = get_IA_from_pipeline(repo_name=repo, pipeline_id=pipeline['id'])
     if IA['Status'] == "DONE":
         report = get_impact_analysis_node_report(impact_analysis_id=IA['Id'])
+
+data['log'] = ""
+data['notes'] = ""
+print_json(data)
+
+webhook_endpoint = 'https://ven02941.service-now.com/api/x_radi_rapdev_pupp/pipeline_webhook'
+headers = {'Content-Type': 'application/json'}
+webhook_response = requests.post(webhook_endpoint, headers=headers, json=data)
+print(webhook_response)
