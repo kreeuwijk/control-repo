@@ -149,3 +149,7 @@ def approve_deployment(deployment_id):
 connect_cd4pe(endpoint=endpoint, username=user, password=pwd)
 pipeline_id = search_latest_pipeline(repo_name=repo, gitCommitId=commitSha)
 pipeline_report = report_pipeline_stages(repo_name=repo, pipeline_id=pipeline_id, pipeline_stage=stagename)
+if stagename == 'Impact Analysis':
+    IA = get_IA_from_pipeline(repo_name=repo, pipeline_id=pipeline_id)
+    if IA['Status'] == "DONE":
+        report = get_impact_analysis_node_report(impact_analysis_id=IA['Id'])
