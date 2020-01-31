@@ -13,20 +13,22 @@ from cd4pe_client import CD4PE
 CD4PE_CLIENT = None
 parser       = argparse.ArgumentParser(description='Optional app description')
 parser.add_argument('--commitSha', type=str, help='the Git commit SHA to check')
+parser.add_argument('--maxchanges', type=int, help='how many changes are still deemed safe', default=10)
 parser.add_argument('--stagename', type=str, help='the pipeline stage to report')
 parser.add_argument('--user', type=str, help='the CD4PE username')
 parser.add_argument('--pwd', type=str, help='the CD4PE user password')
 parser.add_argument('--endpoint', type=str, help='the CD4PE endpoint')
 parser.add_argument('--repo', type=str, help='the (control)repo to parse')
 
-args      = parser.parse_args()
-commitSha = args.commitSha
-stagename = args.stagename
-user      = args.user
-pwd       = args.pwd
-endpoint  = args.endpoint
-repo      = args.repo
-LOGGER    = logging.getLogger(__name__)
+args       = parser.parse_args()
+commitSha  = args.commitSha
+maxchanges = args.maxchanges
+stagename  = args.stagename
+user       = args.user
+pwd        = args.pwd
+endpoint   = args.endpoint
+repo       = args.repo
+LOGGER     = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
 def print_json(content):
@@ -115,32 +117,59 @@ def get_IA_from_pipeline(pipeline_json):
                 table['Status'] = stage_job['peImpactAnalysisEvent']['state']
                 return table
 
-def get_impact_analysis_node_report(impact_analysis_id):
+def get_impact_analysis_node_report(impact_analysis_id, max_changes):
     # TODO: make environment an argument of the function and process only that environment
     response = CD4PE_CLIENT.get_impact_analysis(id=impact_analysis_id).json()
     no_of_environments = len(response['results'])
     for x in range(no_of_environments):
+        table = {}
         env_result = response['results'][x]
         add2log("Impact Analysis report on environment: " + env_result['environment'])
+        table['IA_environment'] = env_result['environment']
         env_result_id = env_result['environmentResultId']
+        env_result = None
         env_result = CD4PE_CLIENT.search_impacted_nodes(environment_result_id=env_result_id).json()
         no_of_impacted_nodes = len(env_result['rows'])
         add2log( "Number of impacted nodes: " + str(no_of_impacted_nodes))
         safe_report = True
+        table['IA_nodes_impacted'] = len(env_result['rows'])
+        compile_failures = 0
+        compile_success = 0
+        table['IA_node_reports'] = {}
         for y in range(no_of_impacted_nodes):
             node_result = env_result['rows'][y]
+            table['IA_node_reports'][node_result['certnameLowercase']] = {}
             if 'compileFailed' in node_result:
                 add2log("  Node " + node_result['certnameLowercase'] + ": Failed compilation")
+                compile_failures += 1
+                table['IA_node_reports'][node_result['certnameLowercase']]['Compilation'] = 'FAILED'
                 safe_report = False
             else:
                 add2log("  Node " + node_result['certnameLowercase'] + " resources: " +
                     str(len(node_result['resourcesAdded'])) + " added, " +
                     str(len(node_result['resourcesModified'])) + " modified, " +
                     str(len(node_result['resourcesRemoved'])) + " removed.")
-        result = "Impact Analysis: safe" if (safe_report == True) else "Impact Analysis: unsafe"
-        add2log(result)
+                compile_success += 1
+                table['IA_node_reports'][node_result['certnameLowercase']]['compilation'] = 'SUCCESS'
+                table['IA_node_reports'][node_result['certnameLowercase']]['resourcesAdded'] = len(node_result['resourcesAdded'])
+                table['IA_node_reports'][node_result['certnameLowercase']]['resourcesModified'] = len(node_result['resourcesModified'])
+                table['IA_node_reports'][node_result['certnameLowercase']]['resourcesRemoved'] = len(node_result['resourcesRemoved'])
+                table['IA_node_reports'][node_result['certnameLowercase']]['totalResourcesChanges'] = len(node_result['resourcesAdded']) + len(node_result['resourcesModified']) + len(node_result['resourcesRemoved'])
+                if table['IA_node_reports'][node_result['certnameLowercase']]['totalResourcesChanges'] > max_changes:
+                    table['IA_node_reports'][node_result['certnameLowercase']]['change_verdict'] = 'unsafe'
+                    safe_report = False
+                else:
+                    table['IA_node_reports'][node_result['certnameLowercase']]['change_verdict'] = 'safe'
+        table['IA_compile_failures'] = compile_failures
+        table['IA_compile_success'] = compile_success
+        if safe_report == True:
+            table['IA_verdict'] = 'safe'
+            add2log('Impact Analysis: safe')
+        else:
+            table['IA_verdict'] = 'unsafe'
+            add2log('Impact Analysis: unsafe')
         response = None
-        return result
+        return table
 
 def get_pending_approvals(pipeline_json):
     no_of_stages = len(pipeline_json['stages'])
@@ -166,6 +195,7 @@ data['name'] = 'cd4pe-pipeline'
 data['display_name'] = 'cd4pe-pipeline'
 data['build'] = {}
 data['log'] = ""
+data['notes'] = ""
 
 connect_cd4pe(endpoint=endpoint, username=user, password=pwd)
 pipeline = search_latest_pipeline(repo_name=repo, gitCommitId=commitSha)
@@ -188,9 +218,9 @@ pipeline_report = report_pipeline_stages(pipeline_json=pipeline_json, pipeline_s
 if stagename == 'Impact Analysis':
     IA = get_IA_from_pipeline(pipeline_json=pipeline_json)
     if IA['Status'] == "DONE":
-        report = get_impact_analysis_node_report(impact_analysis_id=IA['Id'])
+        report = get_impact_analysis_node_report(impact_analysis_id=IA['Id'], max_changes=maxchanges)
+        data['notes'] = report
 
-data['notes'] = ""
 print_json(data)
 
 webhook_endpoint = 'https://ven02941.service-now.com/api/x_radi_rapdev_pupp/pipeline_webhook'
