@@ -14,7 +14,7 @@ hiera::cmdpath:
   - /opt/puppetlabs/puppet/lib/ruby/vendor_gems/bin
 
 puppet_agent_version: 6.10.1
-puppet_agent_run_interval: 28808
+puppet_agent_run_interval: 28800
 
 ##
 # Timezones
