@@ -87,7 +87,7 @@ def report_pipeline_stages(pipeline_json, pipeline_stage):
                     eventinfo['eventNumber'] = stage_job['vmJobEvent']['vmJobInstanceId']
                     eventinfo['eventTime'] = stage_job['vmJobEvent']['eventTime']
                     eventinfo['eventResult'] = switcher_jobstatus(stage_job['vmJobEvent']['jobStatus'])
-                    eventinfo['startTime'] = stage_job['vmJobEvent']['jobStartTime']
+                    eventinfo['startTime'] = stage_job['vmJobEvent'].get('jobStartTime', stage_job['vmJobEvent']['jobEndTime'])
                     eventinfo['endTime'] = stage_job['vmJobEvent']['jobEndTime']
                     eventinfo['executionTime'] = (eventinfo['endTime'] - eventinfo['startTime'])/1000
                     data['build']['events'].append(eventinfo) 
@@ -98,9 +98,9 @@ def report_pipeline_stages(pipeline_json, pipeline_stage):
                     add2log("  Deployment status: " + stage_job['deploymentAppEvent']['deploymentState'] )
                     eventinfo['eventName'] = stage_job['deploymentAppEvent']['deploymentPlanName'] + " to " + stage_job['deploymentAppEvent']['targetBranch']
                     eventinfo['eventNumber'] = stage_job['deploymentAppEvent']['deploymentId']
-                    eventinfo['eventTime'] = stage_job['vmJobEvent']['eventTime']
+                    eventinfo['eventTime'] = stage_job['deploymentAppEvent']['eventTime']
                     eventinfo['eventResult'] = stage_job['deploymentAppEvent']['deploymentState']
-                    eventinfo['startTime'] = stage_job['deploymentAppEvent']['deploymentStartTime']
+                    eventinfo['startTime'] = stage_job['deploymentAppEvent']['deploymentEndTime'] if stage_job['deploymentAppEvent']['deploymentStartTime'] == 0 else stage_job['deploymentAppEvent']['deploymentStartTime']
                     eventinfo['endTime'] = stage_job['deploymentAppEvent']['deploymentEndTime']
                     eventinfo['executionTime'] = (eventinfo['endTime'] - eventinfo['startTime'])/1000
                     data['build']['events'].append(eventinfo) 
@@ -111,9 +111,9 @@ def report_pipeline_stages(pipeline_json, pipeline_stage):
                     add2log("  Impact Analysis status: " + stage_job['peImpactAnalysisEvent']['state'])
                     eventinfo['eventName'] = "Impact Analysis on " + str(len(stage_job['peImpactAnalysisEvent']['environments'])) + " environments"
                     eventinfo['eventNumber'] = stage_job['peImpactAnalysisEvent']['impactAnalysisId']
-                    eventinfo['eventTime'] = stage_job['vmJobEvent']['eventTime']
+                    eventinfo['eventTime'] = stage_job['peImpactAnalysisEvent']['eventTime']
                     eventinfo['eventResult'] = stage_job['peImpactAnalysisEvent']['state']
-                    eventinfo['startTime'] = stage_job['peImpactAnalysisEvent']['startTime']
+                    eventinfo['startTime'] = stage_job['peImpactAnalysisEvent'].get('startTime', stage_job['peImpactAnalysisEvent']['endTime'])
                     eventinfo['endTime'] = stage_job['peImpactAnalysisEvent']['endTime']
                     eventinfo['executionTime'] = (eventinfo['endTime'] - eventinfo['startTime'])/1000
                     data['build']['events'].append(eventinfo) 
