@@ -218,7 +218,7 @@ def get_pending_approvals(pipeline_json):
 def request_snow_change(endpoint, deployment_id):
     headers = {'Content-Type': 'application/json'}
     json = {}
-    json['commitSHA'] = data['scm']['commit']
+    json['commitSHA'] = pipeline_json['buildStage']['imageEvent']['commitId']
     json['deploymentId'] = deployment_id
     json['targetBranch'] = 'production'
     print_json(json)
@@ -238,6 +238,7 @@ pipeline = search_latest_pipeline(repo_name=repo, gitCommitId=commitSha)
 pipeline_json = CD4PE_CLIENT.get_pipeline(repo_name=repo, pipeline_id=pipeline['id']).json()
 
 if changereq:
+    time.sleep(60)
     pending_approvals = get_pending_approvals(pipeline_json=pipeline_json)
     request_snow_change(endpoint='https://ven02941.service-now.com/api/x_radi_rapdev_pupp/change_request', deployment_id=pending_approvals['production'])
 else:
