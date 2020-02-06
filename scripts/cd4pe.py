@@ -222,8 +222,8 @@ def request_snow_change(endpoint, deployment_id):
     json['deploymentId'] = deployment_id
     json['targetBranch'] = 'production'
     print_json(json)
-    #webhook_response = requests.post(endpoint, headers=headers, json=json)
-    #print(webhook_response)
+    webhook_response = requests.post(endpoint, headers=headers, json=json)
+    print(webhook_response)
 
 def trigger_webhook(endpoint, data):
     headers = {'Content-Type': 'application/json'}
@@ -239,7 +239,7 @@ if changereq:
     time.sleep(60)
 
 pipeline_json = CD4PE_CLIENT.get_pipeline(repo_name=repo, pipeline_id=pipeline['id']).json()
- 
+
 if changereq:
     pending_approvals = get_pending_approvals(pipeline_json=pipeline_json)
     request_snow_change(endpoint='https://ven02941.service-now.com/api/x_radi_rapdev_pupp/change_request', deployment_id=pending_approvals['production'])
@@ -271,4 +271,4 @@ else:
 
     print_json(data)
 
-    #trigger_webhook(endpoint='https://ven02941.service-now.com/api/x_radi_rapdev_pupp/pipeline_webhook', data=data)
+    trigger_webhook(endpoint='https://ven02941.service-now.com/api/x_radi_rapdev_pupp/pipeline_webhook', data=data)
