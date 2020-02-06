@@ -1,0 +1,97 @@
+config:
+  enable_pull_requests_from_forks: false
+  deployment_policy_branch: "production"
+pipelines:
+  master:
+    triggers:
+    - "COMMIT"
+    - "PULL_REQUEST"
+    stages:
+    - name: "Code Validation"
+      steps:
+      - type: "JOB"
+        name: "control-repo-manifest-validate"
+        concurrent_compilations: 0
+        all_deployments: false
+      - type: "JOB"
+        name: "control-repo-hiera-syntax-validate"
+        concurrent_compilations: 0
+        all_deployments: false
+      - type: "JOB"
+        name: "control-repo-template-syntax-validate"
+        concurrent_compilations: 0
+        all_deployments: false
+      - type: "JOB"
+        name: "control-repo-puppetfile-syntax-validate"
+        concurrent_compilations: 0
+        all_deployments: false
+      auto_promote: "all_succeeded"
+    - name: "Report on Code Validation"
+      steps:
+      - type: "JOB"
+        name: "Report Pipeline Stage - Code Validation"
+        concurrent_compilations: 0
+        all_deployments: false
+      auto_promote: "all_succeeded"
+    - name: "Deploy to Dev"
+      steps:
+      - type: "DEPLOYMENT"
+        name: "Deployment to development on puppet-enterprise"
+        policy:
+          name: "cd4pe_deployments::eventual_consistency"
+        timeout: 3600000
+        concurrent_compilations: 0
+        all_deployments: false
+        pe_server: "puppet-enterprise"
+        target:
+          type: "NODE_GROUP"
+          node_group_id: "98c8ebcc-a389-4071-bf81-12e4fcc3fbb9"
+      auto_promote: "all_succeeded"
+    - name: "Report on Deploy to Dev"
+      steps:
+      - type: "JOB"
+        name: "Report Pipeline Stage - Deploy to Dev"
+        concurrent_compilations: 0
+        all_deployments: false
+      auto_promote: "all_succeeded"
+    - name: "Impact Analysis"
+      steps:
+      - type: "IMPACT_ANALYSIS"
+        deployments:
+        - "Deployment to production on puppet-enterprise"
+        concurrent_compilations: 10
+        all_deployments: false
+      auto_promote: "all_succeeded"
+    - name: "Report on Impact Analysis"
+      steps:
+      - type: "JOB"
+        name: "Report Pipeline Stage - Impact Analysis"
+        concurrent_compilations: 0
+        all_deployments: false
+      auto_promote: "all_succeeded"
+    - name: "Deploy to Prod"
+      steps:
+      - type: "DEPLOYMENT"
+        name: "Deployment to production on puppet-enterprise"
+        policy:
+          name: "cd4pe_deployments::eventual_consistency"
+        timeout: 3600000
+        concurrent_compilations: 0
+        all_deployments: false
+        pe_server: "puppet-enterprise"
+        target:
+          type: "NODE_GROUP"
+          node_group_id: "9ae11ecd-dda0-408c-b73d-7345ffb26c80"
+      - type: "JOB"
+        name: "Request SNOW change - Deploy to Prod"
+        concurrent_compilations: 0
+        all_deployments: false
+      auto_promote: "all_succeeded"
+    - name: "Report on Deploy to Prod"
+      steps:
+      - type: "JOB"
+        name: "Report Pipeline Stage - Deploy to Prod"
+        concurrent_compilations: 0
+        all_deployments: false
+      auto_promote: false
+spec_version: "V1"
