@@ -231,6 +231,8 @@ def trigger_webhook(endpoint, data):
     print(webhook_response)
 
 # Start of code execution
+data = {}
+data['log'] = ""
 connect_cd4pe(endpoint=endpoint, username=user, password=pwd)
 pipeline = search_latest_pipeline(repo_name=repo, gitCommitId=commitSha)
 pipeline_json = CD4PE_CLIENT.get_pipeline(repo_name=repo, pipeline_id=pipeline['id']).json()
@@ -239,12 +241,10 @@ if changereq:
     pending_approvals = get_pending_approvals(pipeline_json=pipeline_json)
     request_snow_change(endpoint='https://ven02941.service-now.com/api/x_radi_rapdev_pupp/change_request', deployment_id=pending_approvals['production'])
 else:
-    data = {}
     data['name'] = 'cd4pe-pipeline'
     data['display_name'] = 'cd4pe-pipeline'
     data['build'] = {}
     data['build']['events'] = []
-    data['log'] = ""
     data['notes'] = ""
     data['url'] = "main/repositories/" + repo + "?pipelineId=" + str(pipeline['id'])
     data['build']['full_url'] = endpoint + "/" + CD4PE_CLIENT.api_ajax.owner + "/repositories/" + repo + "?pipelineId=" + str(pipeline['id']) + "&eventId=" + str(pipeline['eventId'])
