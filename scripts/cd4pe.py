@@ -235,10 +235,12 @@ data = {}
 data['log'] = ""
 connect_cd4pe(endpoint=endpoint, username=user, password=pwd)
 pipeline = search_latest_pipeline(repo_name=repo, gitCommitId=commitSha)
+if changereq:
+    time.sleep(60)
+
 pipeline_json = CD4PE_CLIENT.get_pipeline(repo_name=repo, pipeline_id=pipeline['id']).json()
 
 if changereq:
-    time.sleep(60)
     pending_approvals = get_pending_approvals(pipeline_json=pipeline_json)
     request_snow_change(endpoint='https://ven02941.service-now.com/api/x_radi_rapdev_pupp/change_request', deployment_id=pending_approvals['production'])
 else:
