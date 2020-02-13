@@ -221,12 +221,15 @@ def get_pending_approvals(pipeline_json):
                     table[deployment['environmentForPendingApproval']] = deployment['id']
     return table
 
-def request_snow_change(endpoint, deployment_id):
+def request_snow_change(endpoint, deployment_id, IA_verdict):
     headers = {'Content-Type': 'application/json'}
     json = {}
-    json['commitSHA'] = pipeline_json['buildStage']['imageEvent']['commitId']
-    json['deploymentId'] = deployment_id
-    json['targetBranch'] = 'production'
+    json['commitSHA']       = pipeline_json['buildStage']['imageEvent']['commitId']
+    json['deploymentId']    = deployment_id
+    json['targetBranch']    = 'production'
+    json['scm_branch']      = pipeline_json['buildStage']['imageEvent']['branch']
+    json['build_phase']     = stagename
+    json['impact_analysis'] = IA_verdict
     print_json(json)
     webhook_response = requests.post(endpoint, headers=headers, json=json)
     print(webhook_response)
@@ -248,7 +251,13 @@ pipeline_json = CD4PE_CLIENT.get_pipeline(repo_name=repo, pipeline_id=pipeline['
 
 if changereq:
     pending_approvals = get_pending_approvals(pipeline_json=pipeline_json)
-    request_snow_change(endpoint='https://ven02941.service-now.com/api/x_radi_rapdev_pupp/change_request', deployment_id=pending_approvals['production'])
+    IA = get_IA_from_pipeline(pipeline_json=pipeline_json)
+    if IA['Status'] == "DONE":
+        report = get_impact_analysis_node_report(impact_analysis_id=IA['Id'], max_changes=maxchanges)
+        IA_verdict = report['IA_verdict']
+    else:
+        IA_verdict = 'unsafe'
+    request_snow_change(endpoint='https://ven02941.service-now.com/api/x_radi_rapdev_pupp/change_request', deployment_id=pending_approvals['production'], IA_verdict=IA_verdict)
 else:
     data['name'] = 'cd4pe-pipeline'
     data['display_name'] = 'cd4pe-pipeline'
