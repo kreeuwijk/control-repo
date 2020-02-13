@@ -89,8 +89,14 @@ def report_pipeline_stages(pipeline_json, pipeline_stage):
                     eventinfo['eventNumber'] = stage_job['vmJobEvent']['vmJobInstanceId']
                     eventinfo['eventTime'] = stage_job['vmJobEvent']['eventTime']
                     eventinfo['eventResult'] = switcher_jobstatus(stage_job['vmJobEvent']['jobStatus'])
-                    eventinfo['startTime'] = stage_job['vmJobEvent'].get('jobStartTime', stage_job['vmJobEvent']['jobEndTime'])
-                    eventinfo['endTime'] = stage_job['vmJobEvent']['jobEndTime']
+                    try:
+                        eventinfo['startTime'] = stage_job['vmJobEvent'].get('jobStartTime', stage_job['vmJobEvent']['jobEndTime'])
+                    except:
+                        eventinfo['startTime'] = 0
+                    try:
+                        eventinfo['endTime'] = stage_job['vmJobEvent']['jobEndTime']
+                    except:
+                        eventinfo['endTime'] = 0
                     eventinfo['executionTime'] = (eventinfo['endTime'] - eventinfo['startTime'])/1000
                     data['build']['events'].append(eventinfo)
                     if switcher_jobstatus(stage_job['vmJobEvent']['jobStatus']) != 'Success':
