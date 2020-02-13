@@ -64,7 +64,9 @@ def search_latest_pipeline(repo_name, gitCommitId):
 def switcher_jobstatus(job_status):
     switcher = {
         'f': "Failure",
-        's': "Success"
+        's': "Success",
+        'r': "Running",
+        'c': "Canceled"
     }
     return switcher.get(job_status, "unknown status: " + str(job_status))
 

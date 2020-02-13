@@ -86,7 +86,7 @@ pipelines:
         name: "Request SNOW change - Deploy to Prod"
         concurrent_compilations: 0
         all_deployments: false
-      auto_promote: "all_succeeded"
+      auto_promote: "all_completed"
     - name: "Report on Deploy to Prod"
       steps:
       - type: "JOB"
