@@ -16,6 +16,7 @@ parser.add_argument('--commitSha', type=str, help='the Git commit SHA to check')
 parser.add_argument('--maxchanges', type=int, help='how many changes are still deemed safe', default=10)
 parser.add_argument('--stagename', type=str, help='the pipeline stage to report')
 parser.add_argument('--changereq', type=bool, help='(boolean) create a SNOW ticket for deploy approval', default=False)
+parser.add_argument('--prenotify', type=bool, help='(boolean) notify stage as running', default=False)
 parser.add_argument('--user', type=str, help='the CD4PE username')
 parser.add_argument('--pwd', type=str, help='the CD4PE user password')
 parser.add_argument('--endpoint', type=str, help='the CD4PE endpoint')
@@ -26,6 +27,7 @@ commitSha  = args.commitSha
 maxchanges = args.maxchanges
 stagename  = args.stagename
 changereq  = args.changereq
+prenotify  = args.prenotify
 user       = args.user
 pwd        = args.pwd
 endpoint   = args.endpoint
@@ -90,7 +92,7 @@ def report_pipeline_stages(pipeline_json, pipeline_stage):
                     eventinfo['startTime'] = stage_job['vmJobEvent'].get('jobStartTime', stage_job['vmJobEvent']['jobEndTime'])
                     eventinfo['endTime'] = stage_job['vmJobEvent']['jobEndTime']
                     eventinfo['executionTime'] = (eventinfo['endTime'] - eventinfo['startTime'])/1000
-                    data['build']['events'].append(eventinfo) 
+                    data['build']['events'].append(eventinfo)
                     if switcher_jobstatus(stage_job['vmJobEvent']['jobStatus']) != 'Success':
                         stage_failure = True
                 elif 'deploymentAppEvent' in stage_job:
@@ -126,8 +128,12 @@ def report_pipeline_stages(pipeline_json, pipeline_stage):
             data['build']['endTime'] = last_event['endTime']
             data['build']['executionTime'] = (last_event['endTime'] - first_event['startTime'])/1000
             if stage_failure == True:
-                result = "Stage failed"
-                data['build']['status'] = 'FAILURE'
+                if prenotify == True:
+                    result = "Stage running"
+                    data['build']['status'] = 'RUNNING'
+                else:
+                    result = "Stage failed"
+                    data['build']['status'] = 'FAILURE'
             else:
                 result = "Stage succeeded"
                 data['build']['status'] = 'SUCCESS'
@@ -236,7 +242,7 @@ data['log'] = ""
 connect_cd4pe(endpoint=endpoint, username=user, password=pwd)
 pipeline = search_latest_pipeline(repo_name=repo, gitCommitId=commitSha)
 if changereq:
-    time.sleep(60)
+    time.sleep(20)
 
 pipeline_json = CD4PE_CLIENT.get_pipeline(repo_name=repo, pipeline_id=pipeline['id']).json()
 
