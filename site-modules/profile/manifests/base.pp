@@ -31,17 +31,17 @@ class profile::base {
       setting => 'runinterval',
       value   => $agentruninterval,
     ;
-    'puppet[main:priority]':
-      setting => 'priority',
-      value   => 'low',
-    ;
+    #'puppet[main:priority]':
+    #  setting => 'priority',
+    #  value   => 'low',
+    #;
     'puppet[main:usecacheonfailure]':
       setting => 'usecacheonfailure',
-      value   => true,
-    ;
-    'puppet[main:splay]':
-      setting => 'splay',
       value   => false,
+    ;
+    #'puppet[main:splay]':
+    #  setting => 'splay',
+    #  value   => false,
   }
 
   service { 'puppet':
@@ -51,19 +51,19 @@ class profile::base {
   case $::osfamily {
     default: { } # for OS's not listed, do nothing
     'RedHat': {
-      $timezone = lookup('timezone.linux')
-      class { 'timezone':
-        timezone => $timezone,
-      }
-      ini_setting { 'yum[main:installonly_limit]':
-        ensure            => present,
-        section           => 'main',
-        setting           => 'installonly_limit',
-        key_val_separator => '=',
-        value             => '2',
-        path              => '/etc/yum.conf',
-        notify            => Service['puppet']
-      }
+      #$timezone = lookup('timezone.linux')
+      #class { 'timezone':
+      #  timezone => $timezone,
+      #}
+      #ini_setting { 'yum[main:installonly_limit]':
+      #  ensure            => present,
+      #  section           => 'main',
+      #  setting           => 'installonly_limit',
+      #  key_val_separator => '=',
+      #  value             => '2',
+      #  path              => '/etc/yum.conf',
+      #  notify            => Service['puppet']
+      #}
     }
     'windows': {
       $timezone = lookup('timezone.windows')
