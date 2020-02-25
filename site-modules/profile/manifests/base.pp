@@ -37,7 +37,7 @@ class profile::base {
     ;
     'puppet[main:usecacheonfailure]':
       setting => 'usecacheonfailure',
-      value   => false,
+      value   => true,
     ;
     'puppet[main:splay]':
       setting => 'splay',
