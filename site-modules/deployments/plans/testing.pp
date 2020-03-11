@@ -7,5 +7,6 @@ plan deployments::testing(
   #$events = cd4pe_deployments::list_trigger_events($repo_name)
   #file::write('/root/testoutput.txt', $events)
   $dir = module_directory('deployments')
+  out::message("${dir}")
   file::write('/root/testoutput.txt', $dir)
 }
