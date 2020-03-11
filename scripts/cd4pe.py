@@ -253,7 +253,7 @@ data['log'] = ""
 connect_cd4pe(endpoint=endpoint, username=user, password=pwd)
 pipeline = search_latest_pipeline(repo_name=repo, gitCommitId=commitSha)
 if changereq:
-    time.sleep(20)
+    time.sleep(30)
 
 pipeline_json = CD4PE_CLIENT.get_pipeline(repo_name=repo, pipeline_id=pipeline['id']).json()
 
