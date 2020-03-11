@@ -4,6 +4,8 @@ plan deployments::testing(
 ){
   $repo_type = system::env('REPO_TYPE')
   $repo_name = 'control-repo'
-  $events = cd4pe_deployments::list_trigger_events($repo_name)
-  file::write('/root/testoutput.txt', $events)
+  #$events = cd4pe_deployments::list_trigger_events($repo_name)
+  #file::write('/root/testoutput.txt', $events)
+  $dir = module_directory('deployments')
+  file::write('/root/testoutput.txt', $dir)
 }
