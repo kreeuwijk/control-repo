@@ -10,6 +10,6 @@ plan deployments::testing(
   #ctrl::sleep(180)
   #$events = cd4pe_deployments::list_trigger_events($repo_name)
   #file::write('/root/testoutput.txt', $events)
-  run_plan('deployments::plan2','localhost')
+  run_plan('deployments::plan2')
 
 }
