@@ -8,7 +8,7 @@ plan deployments::testing(
   #ctrl::sleep(180)
   $cookie = cd4pe_deployments::get_cookie($cd4pe_user, $cd4pe_passwd)
   file::write('/root/test_cookie.txt', "${cookie}")
-  $events = cd4pe_deployments::list_trigger_events($repo_name, $cookie)
+  $events = cd4pe_deployments::list_trigger_events($repo_name, $cookie['result'])
   file::write('/root/testoutput.txt', "${events}")
 
 }
