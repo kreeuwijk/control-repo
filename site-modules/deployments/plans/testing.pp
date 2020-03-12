@@ -9,6 +9,6 @@ plan deployments::testing(
   #run_task('deployments::install_modules', 'localhost', 'Install module content...', 'deploydir' => $deploysdir)
   #ctrl::sleep(180)
   $events = cd4pe_deployments::list_trigger_events($repo_name)
-  file::write('/root/testoutput.txt', $events)
+  file::write('/root/testoutput.txt', "${events}")
 
 }
