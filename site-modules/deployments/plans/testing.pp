@@ -13,5 +13,6 @@ plan deployments::testing(
 
   $deploysdir = module_directory('deployments')  # => /disk/2813153411337507734/control-repo/site-modules/deployments
   file::write('/root/testoutput.txt', "${deploysdir}")
+  
 
 }
