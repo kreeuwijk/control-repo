@@ -1,0 +1,15 @@
+require 'puppet_x/puppetlabs/cd4pe_client'
+require 'puppet_x/puppetlabs/cd4pe_function_result'
+
+Puppet::Functions.create_function(:'deployments::function') do
+    dispatch :create_git_branch do
+      required_param 'Enum["CONTROL_REPO", "MODULE"]', :repo_type
+      required_param 'String', :branch_name
+      required_param 'String', :commit_sha
+      optional_param 'Boolean', :cleanup
+    end
+  
+    def function(repo_type, branch_name, commit_sha, cleanup = true)
+    end
+
+end
