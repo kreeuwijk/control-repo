@@ -11,15 +11,15 @@ plan deployments::testing(
 
   # Get a cookie for function calls that need it
   $cookie_hash = cd4pe_deployments::get_cookie($cd4pe_user, $cd4pe_passwd)
-  $cookie = deployments::parse_result($cookie_hash)
+  $cookie = deployments::eval_result($cookie_hash)
 
   # Find the pipeline ID for the commit SHA
   $pipeline_id_hash = cd4pe_deployments::search_pipeline($repo_name, $commit_sha, $cookie)
-  $pipeline_id = deployments::parse_result($pipeline_id_hash)
+  $pipeline_id = deployments::eval_result($pipeline_id_hash)
 
   # Get the pipeline
   $pipeline_hash = cd4pe_deployments::get_pipeline($repo_type, $repo_name, $pipeline_id, $cookie)
-  $pipeline = deployments::parse_result($pipeline_hash)
+  $pipeline = deployments::eval_result($pipeline_hash)
 
   #pipeline_report = report_pipeline_stages(pipeline_json=pipeline_json, pipeline_stage=stagename)
   $env = deployments::env_test()
