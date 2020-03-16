@@ -23,11 +23,14 @@ plan deployments::testing(
   # Loop until items in pipeline stage are done
   ctrl::do_until() || {
     # Wait 15 seconds for each loop
-    ctrl::sleep(15)
+    ctrl::sleep(3)
     # Get the current pipeline stage status
     $pipeline_hash = cd4pe_deployments::get_pipeline($repo_type, $repo_name, $pipeline_id, $cookie)
     $pipeline = deployments::eval_result($pipeline_hash)
-    $pipeline_stage = $pipeline['stages'].filter |$stages| { $stages['stageNum'] == $stage_num }
+    file::write('/root/pipeline.txt', "${pipeline}")
+    file::write('/root/pipeline_stages.txt', "${pipeline['stages']}")
+    $pipeline_stages = $pipeline['stages']
+    $pipeline_stage = $pipeline_stages.filter |$stages| { $stages['stageNum'] == $stage_num }
     file::write('/root/testoutput.txt', "${pipeline_stage}")
 
     # Check if items in the pipeline stage are done
