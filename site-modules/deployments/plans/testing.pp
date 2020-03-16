@@ -11,6 +11,7 @@ plan deployments::testing(
 
   # Find out which stage is currently running
   $stage_num = deployments::get_running_stage()
+  file::write('/root/stagenum.txt', "${stage_num}")
 
   # Get a cookie for function calls that need it
   $cookie_hash = cd4pe_deployments::get_cookie($cd4pe_user, $cd4pe_passwd)
@@ -27,10 +28,10 @@ plan deployments::testing(
     # Get the current pipeline stage status
     $pipeline_hash = cd4pe_deployments::get_pipeline($repo_type, $repo_name, $pipeline_id, $cookie)
     $pipeline = deployments::eval_result($pipeline_hash)
-    file::write('/root/pipeline.txt', "${pipeline}")
-    file::write('/root/pipeline_stages.txt', "${pipeline['stages']}")
-    $pipeline_stages = $pipeline['stages']
-    $pipeline_stage = $pipeline_stages.filter |$stages| { $stages['stageNum'] == $stage_num }
+    $pipeline_stage = $pipeline['stages'].filter |$stage| {
+      file::write('/root/stage_stageNum.txt', "${stage['stageNum']}")
+      $stage['stageNum'] == "${stage_num}"
+    }
     file::write('/root/testoutput.txt', "${pipeline_stage}")
     true
     # Check if items in the pipeline stage are done
