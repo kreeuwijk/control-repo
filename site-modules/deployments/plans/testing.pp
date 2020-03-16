@@ -22,8 +22,8 @@ plan deployments::testing(
   $pipeline = deployments::eval_result($pipeline_hash)
 
   #pipeline_report = report_pipeline_stages(pipeline_json=pipeline_json, pipeline_stage=stagename)
-  $env = deployments::env_test()
-  file::write('/root/env.txt', "${env}")
+  $stage_num = deployments::get_running_stage()
+  file::write('/root/stagenum.txt', "${stage_num}")
 
   #file::write('/root/testoutput.txt', "${pipeline}")
 
