@@ -28,12 +28,12 @@ plan deployments::testing(
     $pipeline_hash = cd4pe_deployments::get_pipeline($repo_type, $repo_name, $pipeline_id, $cookie)
     $pipeline = deployments::eval_result($pipeline_hash)
     $pipeline_stage = $pipeline['stages'].filter |$stages| { $stages['stageNum'] == $stage_num }
+    file::write('/root/testoutput.txt', "${pipeline_stage}")
 
     # Check if items in the pipeline stage are done
     #$report = deployments::pipeline_stage_done($pipeline_stage)
   }
   #$report = deployments::report_pipeline_stage($pipeline, $stage_num)
-  file::write('/root/testoutput.txt', "${pipeline_stage}")
 
 }
 
