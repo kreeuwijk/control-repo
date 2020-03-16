@@ -87,3 +87,7 @@ mod 'puppetlabs-sshkeys_core', '1.0.2'
 mod 'puppetlabs-selinux_core', '1.0.2'
 mod 'puppetlabs-augeas_core', '1.0.4'
 mod 'puppetlabs-host_core', '1.0.2'
+
+mod 'servicenow_integration', # not published on the forge
+  :git    => 'https://github.com/kreeuwijk/puppetlabs-servicenow_integration.git',
+  :branch => 'master'
