@@ -27,7 +27,7 @@ plan deployments::testing(
     # Get the current pipeline stage status
     $pipeline_hash = cd4pe_deployments::get_pipeline($repo_type, $repo_name, $pipeline_id, $cookie)
     $pipeline = deployments::eval_result($pipeline_hash)
-    $pipeline_stage = $pipeline['stages'].filter |$stage| { $stage['stageNum'] == 1 }
+    $pipeline_stage = $pipeline['stages'].filter |$stage| { $stage['stageNum'] == 2 }
     file::write('/root/testoutput.txt', "${pipeline_stage}")
 
     # Check if items in the pipeline stage are done
