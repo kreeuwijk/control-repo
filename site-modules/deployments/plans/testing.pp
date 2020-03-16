@@ -32,7 +32,7 @@ plan deployments::testing(
     $pipeline_stages = $pipeline['stages']
     $pipeline_stage = $pipeline_stages.filter |$stages| { $stages['stageNum'] == $stage_num }
     file::write('/root/testoutput.txt', "${pipeline_stage}")
-
+    true
     # Check if items in the pipeline stage are done
     #$report = deployments::pipeline_stage_done($pipeline_stage)
   }
