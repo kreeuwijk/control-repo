@@ -21,7 +21,7 @@ plan deployments::testing(
   $pipeline_id = deployments::eval_result($pipeline_id_hash)
 
   # Loop until items in pipeline stage are done
-  ctrl::do_until() || {
+  ctrl::do_until('limit'=>2) || {
     # Wait 15 seconds for each loop
     ctrl::sleep(3)
     # Get the current pipeline stage status
