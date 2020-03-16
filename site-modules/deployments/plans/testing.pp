@@ -9,9 +9,12 @@ plan deployments::testing(
   $repo_name = 'control-repo'
 
   # Get a cookie for function calls that need it
-  $cookie = cd4pe_deployments::get_cookie($cd4pe_user, $cd4pe_passwd)
-  $pipeline_id = cd4pe_deployments::search_pipeline($repo_name, $commit_sha, $cookie)
-  $pipeline = cd4pe_deployments::get_pipeline($repo_type, $repo_name, $pipeline_id, $cookie)
+  $cookie_hash = cd4pe_deployments::get_cookie($cd4pe_user, $cd4pe_passwd)
+  $cookie = $cookie_hash[result]
+  $pipeline_id_hash = cd4pe_deployments::search_pipeline($repo_name, $commit_sha, $cookie)
+  $pipeline_id = $pipeline_id_hash[result]
+  $pipeline_hash = cd4pe_deployments::get_pipeline($repo_type, $repo_name, $pipeline_id, $cookie)
+  $pipeline = $pipeline_hash[result]
   file::write('/root/testoutput.txt', "${pipeline}")
 
 }
