@@ -9,6 +9,9 @@ plan deployments::testing(
   # Hardcode control repo name, as this can't be read from the env vars yet
   $repo_name = 'control-repo'
 
+  # Find out which stage is currently running
+  $stage_num = deployments::get_running_stage()
+
   # Get a cookie for function calls that need it
   $cookie_hash = cd4pe_deployments::get_cookie($cd4pe_user, $cd4pe_passwd)
   $cookie = deployments::eval_result($cookie_hash)
@@ -17,15 +20,20 @@ plan deployments::testing(
   $pipeline_id_hash = cd4pe_deployments::search_pipeline($repo_name, $commit_sha, $cookie)
   $pipeline_id = deployments::eval_result($pipeline_id_hash)
 
-  # Get the pipeline
-  $pipeline_hash = cd4pe_deployments::get_pipeline($repo_type, $repo_name, $pipeline_id, $cookie)
-  $pipeline = deployments::eval_result($pipeline_hash)
+  # Loop until items in pipeline stage are done
+  ctrl::do_until() || {
+    # Wait 15 seconds for each loop
+    ctrl::sleep(15)
+    # Get the current pipeline stage status
+    $pipeline_hash = cd4pe_deployments::get_pipeline($repo_type, $repo_name, $pipeline_id, $cookie)
+    $pipeline = deployments::eval_result($pipeline_hash)
+    $pipeline_stage = $pipeline['stages'].filter |$stages| { $stages['stageNum'] == $stage_num }
 
-  #pipeline_report = report_pipeline_stages(pipeline_json=pipeline_json, pipeline_stage=stagename)
-  $stage_num = deployments::get_running_stage()
-  file::write('/root/stagenum.txt', "${stage_num}")
-
-  #file::write('/root/testoutput.txt', "${pipeline}")
+    # Check if items in the pipeline stage are done
+    #$report = deployments::pipeline_stage_done($pipeline_stage)
+  }
+  #$report = deployments::report_pipeline_stage($pipeline, $stage_num)
+  file::write('/root/testoutput.txt', "${pipeline_stage}")
 
 }
 
