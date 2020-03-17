@@ -1,4 +1,4 @@
-plan deployments::testing(
+plan deployments::servicenow_integration(
   String $cd4pe_user,
   String $cd4pe_passwd,
 ){
