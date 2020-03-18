@@ -23,15 +23,18 @@ plan deployments::servicenow_integration(
   $pipeline_id = $pipeline_search_hash['id']
 
   # Loop until items in pipeline stage are done
-  ctrl::do_until('limit'=>20) || {
+  $loop_result = ctrl::do_until('limit'=>20) || {
     # Wait 15 seconds for each loop
-    ctrl::sleep(5)
+    ctrl::sleep(15)
     # Get the current pipeline stage status (temporary variables that don't exist outside this loop)
     $pipeline_result = cd4pe_deployments::get_pipeline($repo_type, $repo_name, $pipeline_id, $cookie)
     $pipeline = deployments::eval_result($pipeline_result)
     $pipeline_stage = $pipeline['stages'].filter |$stage| { $stage['stageNum'] == $stage_num }
     # Check if items in the pipeline stage are done
     deployments::pipeline_stage_done($pipeline_stage)
+  }
+  unless $loop_result {
+    fail_plan('Timeout waiting for pipeline stage to finish!', 2)
   }
   # Generate the final variables
   $pipeline_result = cd4pe_deployments::get_pipeline($repo_type, $repo_name, $pipeline_id, $cookie)
