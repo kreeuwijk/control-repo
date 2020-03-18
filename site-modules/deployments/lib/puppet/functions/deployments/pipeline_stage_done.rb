@@ -9,7 +9,7 @@ Puppet::Functions.create_function(:'deployments::pipeline_stage_done') do
     when 's' then 'SUCCESS'
     when 'r' then 'RUNNING'
     when 'c' then 'CANCELED'
-    when 'q' then 'QUEUED'
+    when 'w' then 'QUEUED'
     else
       "Unknown status: #{job_status}"
     end
@@ -17,17 +17,17 @@ Puppet::Functions.create_function(:'deployments::pipeline_stage_done') do
 
   def pipeline_stage_done(pipeline_stage)
     bln_done = true
-    pipeline_stage[0]['destinations'].each do |item|
-      if item.key?('vmJobEvent')
-        field_to_check = jobstatus(item['vmJobEvent']['jobStatus'])
-      elsif item.key?('deploymentAppEvent')
-        field_to_check = if item['deploymentAppEvent']['deploymentPlanName'] == 'deployments::servicenow_integration'
+    pipeline_stage[0]['destinations'].each do |event|
+      if event.key?('vmJobEvent')
+        field_to_check = jobstatus(event['vmJobEvent']['jobStatus'])
+      elsif event.key?('deploymentAppEvent')
+        field_to_check = if event['deploymentAppEvent']['deploymentPlanName'] == 'deployments::servicenow_integration'
                            'SELF'
                          else
-                           item['deploymentAppEvent']['deploymentState']
+                           event['deploymentAppEvent']['deploymentState']
                          end
-      elsif item.key?('peImpactAnalysisEvent')
-        field_to_check = item['peImpactAnalysisEvent']['state']
+      elsif event.key?('peImpactAnalysisEvent')
+        field_to_check = event['peImpactAnalysisEvent']['state']
       end
       case field_to_check
       when 'RUNNING', 'QUEUED' then bln_done = false
