@@ -95,7 +95,7 @@ Puppet::Functions.create_function(:'deployments::report_pipeline_stage') do
           bln_stage_success = false
         end
       elsif event.key?('peImpactAnalysisEvent')
-        eventinfo['eventName'] = 'Impact Analysis on: ' + event['peImpactAnalysisEvent']['environments'].count.to_s + ' environments'
+        eventinfo['eventName'] = 'Impact Analysis'
         eventinfo['eventType'] = 'IA'
         eventinfo['eventNumber'] = event['peImpactAnalysisEvent']['impactAnalysisId']
         eventinfo['eventTime'] = event['peImpactAnalysisEvent']['eventTime']

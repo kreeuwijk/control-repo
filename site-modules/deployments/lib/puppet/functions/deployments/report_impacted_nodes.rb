@@ -18,7 +18,7 @@ Puppet::Functions.create_function(:'deployments::report_impacted_nodes') do
   def report_impacted_nodes(impacted_nodes, max_changes_per_node)
     @report = {}
     @report['log'] = ''
-    @report['IA_node_reports'] = []
+    @report['IA_node_reports'] = {}
     @report['IA_nodes_impacted'] = impacted_nodes['rows'].count
     compile_failures = 0
     compile_success = 0
@@ -31,10 +31,10 @@ Puppet::Functions.create_function(:'deployments::report_impacted_nodes') do
         @report['IA_node_reports'][node_result['certnameLowercase']]['Compilation'] = 'FAILED'
         bln_safe_report = false
       else
-        add2log('   Node ' + node_result['certnameLowercase'] + " resources: \n" \
-          '    ' + node_result['resourcesAdded'].count.to_s + " added, \n" \
-          '    ' + node_result['resourcesModified'].count.to_s + " modified, \n" \
-          '    ' + node_result['resourcesRemoved'].count.to_s + ' removed.')
+        add2log('   Node ' + node_result['certnameLowercase'] + ' resources: ' +
+          node_result['resourcesAdded'].count.to_s + ' added, ' +
+          node_result['resourcesModified'].count.to_s + ' modified, ' +
+          node_result['resourcesRemoved'].count.to_s + ' removed.')
         compile_success += 1
         @report['IA_node_reports'][node_result['certnameLowercase']]['compilation'] = 'SUCCESS'
         @report['IA_node_reports'][node_result['certnameLowercase']]['resourcesAdded'] = node_result['resourcesAdded'].count.to_i
