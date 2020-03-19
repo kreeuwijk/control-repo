@@ -48,7 +48,15 @@ Puppet::Functions.create_function(:'deployments::report_pipeline_stage') do
                      '?pipelineId=' + pipeline_search_hash['id']
     add2log('Pipeline #: ' + pipeline_search_hash['eventId'].to_s)
     add2log(' Stage ' + pipeline_stage[0]['stageNum'].to_s + ': ' + pipeline_stage[0]['stageName'].to_s)
-    add2log('  Number of events in stage: ' + (pipeline_stage[0]['destinations'].count - 1).to_s)
+    bln_reporting_job_found = false
+    pipeline_stage[0]['destinations'].each do |event|
+      next unless event.key?('deploymentAppEvent')
+      next unless event['deploymentAppEvent']['deploymentPlanName'] == 'deployments::servicenow_integration'
+
+      bln_reporting_job_found = true
+    end
+    correction = bln_reporting_job_found ? 1 : 0
+    add2log('  Number of events in stage: ' + (pipeline_stage[0]['destinations'].count - correction).to_s)
     bln_stage_success = true
     pipeline_stage[0]['destinations'].each do |event|
       eventinfo = {}

@@ -12,7 +12,11 @@ plan deployments::servicenow_integration(
   $commit_sha = system::env('COMMIT')
 
   # Find out which stage is currently running
-  $stage_num = deployments::get_running_stage()
+  if $ia_stage == undef {
+    $stage_num = deployments::get_running_stage()
+  } else {
+    $stage_num = $ia_stage
+  }
 
   # Get a cookie for function calls that need it
   $cookie_result = cd4pe_deployments::get_cookie($cd4pe_user, $cd4pe_passwd)
