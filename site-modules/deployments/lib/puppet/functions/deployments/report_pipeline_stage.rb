@@ -20,7 +20,7 @@ Puppet::Functions.create_function(:'deployments::report_pipeline_stage') do
     when 'f' then 'FAILURE'
     when 's' then 'SUCCESS'
     when 'r' then 'RUNNING'
-    when 'c' then 'CANCELED'
+    when 'a' then 'CANCELED'
     when 'q' then 'QUEUED'
     else
       "Unknown status: #{job_status}"

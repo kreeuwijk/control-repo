@@ -2,8 +2,10 @@ plan deployments::servicenow_integration(
   String $cd4pe_user,
   String $cd4pe_passwd,
   String $repo_name = 'control-repo',
+  Integer $max_changes_per_node = 10,
+  Integer $ia_stage = undef,
   String $snow_endpoint = '',
-  Integer $max_changes_per_node = 10
+  Boolean $snow_change_request = false
 ){
   # Read relevant CD4PE environment variables
   $repo_type = system::env('REPO_TYPE')
@@ -59,6 +61,8 @@ plan deployments::servicenow_integration(
       $impacted_nodes = deployments::eval_result($impacted_nodes_result)
       deployments::report_impacted_nodes($ia_env_report, $impacted_nodes, $max_changes_per_node)
     }
+  } else {
+    $ia_envs_report = Tuple({})
   }
 
   # Combine all reports into a single hash
