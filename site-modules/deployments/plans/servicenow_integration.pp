@@ -1,14 +1,13 @@
 plan deployments::servicenow_integration(
   String $cd4pe_user,
   String $cd4pe_passwd,
+  String $repo_name = 'control-repo',
+  String $snow_endpoint = '',
   Integer $max_changes_per_node = 10
 ){
   # Read relevant CD4PE environment variables
   $repo_type = system::env('REPO_TYPE')
   $commit_sha = system::env('COMMIT')
-
-  # Hardcode control repo name, as this can't be read from the env vars yet
-  $repo_name = 'control-repo'
 
   # Find out which stage is currently running
   $stage_num = deployments::get_running_stage()
@@ -48,23 +47,21 @@ plan deployments::servicenow_integration(
   # See if the stage contains an Impact Analysis
   $ia_events = $stage_report['build']['events'].filter |$event| { $event['eventType'] == 'IA' }
   if $ia_events.length > 0 {
-    # Get the Impact Analysis report
+    # Get the Impact Analysis information
     $impact_analysis_id = $ia_events[0]['eventNumber']
     $impact_analysis_result = cd4pe_deployments::get_impact_analysis($impact_analysis_id, $cookie)
     $impact_analysis = deployments::eval_result($impact_analysis_result)
     $ia_report = deployments::report_impact_analysis($impact_analysis)
 
+    # Generate the detailed Impact Analysis report
     $ia_envs_report = $ia_report['results'].map |$ia_env_report| {
       $impacted_nodes_result = cd4pe_deployments::search_impacted_nodes($ia_env_report['IA_resultId'], $cookie)
       $impacted_nodes = deployments::eval_result($impacted_nodes_result)
       deployments::report_impacted_nodes($ia_env_report, $impacted_nodes, $max_changes_per_node)
     }
   }
+
+  # Combine all reports into a single hash
   $report = deployments::combine_reports($stage_report, $scm_data, $ia_envs_report)
-  print_json($report)
 
 }
-
-#$deploysdir = module_directory('deployments')  # => /disk/2813153411337507734/control-repo/site-modules/deployments
-#file::write('/root/testoutput.txt', "${deploysdir}")
-#ctrl::sleep(120)
