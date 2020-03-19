@@ -31,16 +31,21 @@ Puppet::Functions.create_function(:'deployments::report_impacted_nodes') do
     ia_report['IA_nodes_impacted'] = impacted_nodes['rows'].count
     compile_failures = 0
     compile_success = 0
-    bln_safe_report = true
+    add2log('  Impact Analysis Environment Report: ' + ia_report['IA_environment'])
+    add2log('   Analysis status: ' + ia_report['IA_state'])
+    unless impacted_nodes['rows'].count.zero?
+      add2log('   Affected Node Report: ')
+    end
+    bln_safe_report = ia_report['IA_state'] == 'DONE'
     impacted_nodes['rows'].each do |node_result|
       ia_report['IA_node_reports'][node_result['certnameLowercase']] = {}
       if node_result.key?('compileFailed')
-        add2log('   Node ' + node_result['certnameLowercase'] + ': Failed compilation')
+        add2log('    Node ' + node_result['certnameLowercase'] + ': Failed compilation')
         compile_failures += 1
         ia_report['IA_node_reports'][node_result['certnameLowercase']]['Compilation'] = 'FAILED'
         bln_safe_report = false
       else
-        add2log('   Node ' + node_result['certnameLowercase'] + ' resources: ' +
+        add2log('    Node ' + node_result['certnameLowercase'] + ' resources: ' +
           node_result['resourcesAdded'].count.to_s + ' added, ' +
           node_result['resourcesModified'].count.to_s + ' modified, ' +
           node_result['resourcesRemoved'].count.to_s + ' removed.')
@@ -66,10 +71,10 @@ Puppet::Functions.create_function(:'deployments::report_impacted_nodes') do
     ia_report['IA_compile_success'] = compile_success
     if bln_safe_report == true
       ia_report['IA_verdict'] = 'safe'
-      add2log('  Impact Analysis: safe')
+      add2log('   Impact Analysis: safe')
     else
       ia_report['IA_verdict'] = 'unsafe'
-      add2log('  Impact Analysis: unsafe')
+      add2log('   Impact Analysis: unsafe')
     end
     @report['notes'] = ia_report
     @report

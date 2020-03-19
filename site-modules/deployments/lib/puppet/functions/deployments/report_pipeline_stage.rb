@@ -33,7 +33,7 @@ Puppet::Functions.create_function(:'deployments::report_pipeline_stage') do
     @report['display_name'] = 'cd4pe-pipeline'
     @report['build'] = {}
     @report['build']['events'] = []
-    @report['notes'] = ''
+    @report['notes'] = []
     @report['artifacts'] = {}
     @report['log'] = ''
     @report['build']['full_url'] = ENV['WEB_UI_ENDPOINT'] + '/' + ENV['DEPLOYMENT_OWNER'] + '/repositories/' +

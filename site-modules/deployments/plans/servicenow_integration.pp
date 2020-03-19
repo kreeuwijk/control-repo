@@ -25,7 +25,7 @@ plan deployments::servicenow_integration(
   # Loop until items in pipeline stage are done
   $loop_result = ctrl::do_until('limit'=>20) || {
     # Wait 15 seconds for each loop
-    ctrl::sleep(15)
+    ctrl::sleep(1)
     # Get the current pipeline stage status (temporary variables that don't exist outside this loop)
     $pipeline_result = cd4pe_deployments::get_pipeline($repo_type, $repo_name, $pipeline_id, $cookie)
     $pipeline = deployments::eval_result($pipeline_result)
@@ -60,9 +60,8 @@ plan deployments::servicenow_integration(
       deployments::report_impacted_nodes($ia_env_report, $impacted_nodes, $max_changes_per_node)
     }
   }
-  $report = $stage_report + $scm_data + $ia_envs_report
+  $report = deployments::combine_reports($stage_report, $scm_data, $ia_envs_report)
   print_json($report)
-
 
 }
 
