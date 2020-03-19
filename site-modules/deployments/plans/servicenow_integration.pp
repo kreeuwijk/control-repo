@@ -2,10 +2,10 @@ plan deployments::servicenow_integration(
   String $cd4pe_user,
   String $cd4pe_passwd,
   String $repo_name = 'control-repo',
-  Integer $max_changes_per_node = 10,
-  Integer $ia_stage = undef,
   String $snow_endpoint = '',
-  Boolean $snow_change_request = false
+  Optional[Integer] $max_changes_per_node = 10,
+  Optional[Integer] $ia_stage = undef,
+  Optional[Boolean] $snow_change_request = false
 ){
   # Read relevant CD4PE environment variables
   $repo_type = system::env('REPO_TYPE')
