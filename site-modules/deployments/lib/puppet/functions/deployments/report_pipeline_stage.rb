@@ -40,7 +40,11 @@ Puppet::Functions.create_function(:'deployments::report_pipeline_stage') do
                                    pipeline_search_hash['cd4pe_repoName'] + '?pipelineId=' + pipeline_search_hash['id'] +
                                    '&eventId=' + pipeline_search_hash['eventId'].to_s
     @report['build']['number'] = pipeline_search_hash['eventId']
+    @report['build']['owner'] = ENV['DEPLOYMENT_OWNER']
+    @report['build']['pipeline'] = pipeline_search_hash['id']
     @report['build']['phase'] = pipeline_stage[0]['stageName']
+    @report['build']['repo_name'] = pipeline_search_hash['cd4pe_repoName']
+    @report['build']['repo_type'] = ENV['REPO_TYPE']
     @report['build']['queue_id'] = pipeline_stage[0]['stageNum'].to_i
     @report['build']['url'] = '/' + ENV['DEPLOYMENT_OWNER'] + '/repositories/' + pipeline_search_hash['cd4pe_repoName'] +
                               '?pipelineId=' + pipeline_search_hash['id'] + '&eventId=' + pipeline_search_hash['eventId'].to_s

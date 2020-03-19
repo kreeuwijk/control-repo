@@ -1,17 +1,19 @@
 plan deployments::servicenow_integration(
   String $cd4pe_user,
   String $cd4pe_passwd,
-  String $repo_name = 'control-repo',
-  String $snow_endpoint = '',
+  String $repo_name,
+  String $snow_endpoint,
   Optional[Integer] $max_changes_per_node = 10,
   Optional[Integer] $ia_stage = undef,
-  Optional[Boolean] $snow_change_request = false
+  Optional[Boolean] $snow_change_request = false,
+  Optional[String] $snow_changereq_endpoint = undef
+
 ){
   # Read relevant CD4PE environment variables
   $repo_type = system::env('REPO_TYPE')
   $commit_sha = system::env('COMMIT')
 
-  # Find out which stage is currently running
+  # Find out which stage we should report on first
   if $ia_stage == undef {
     $stage_num = deployments::get_running_stage()
   } else {
@@ -27,7 +29,7 @@ plan deployments::servicenow_integration(
   $pipeline_search_hash = deployments::eval_result($pipeline_search_result)
   $pipeline_id = $pipeline_search_hash['id']
 
-  # Loop until items in pipeline stage are done
+  # Loop until items in the pipeline stage are done
   $loop_result = ctrl::do_until('limit'=>240) || {
     # Wait 15 seconds for each loop
     ctrl::sleep(15)
@@ -41,7 +43,7 @@ plan deployments::servicenow_integration(
   unless $loop_result {
     fail_plan('Timeout waiting for pipeline stage to finish!', 'timeout_error')
   }
-  # Generate the final variables
+  # Generate the final pipeline variables
   $pipeline_result = cd4pe_deployments::get_pipeline($repo_type, $repo_name, $pipeline_id, $cookie)
   $pipeline = deployments::eval_result($pipeline_result)
   $pipeline_stage = $pipeline['stages'].filter |$stage| { $stage['stageNum'] == $stage_num }
@@ -72,4 +74,15 @@ plan deployments::servicenow_integration(
   # Combine all reports into a single hash
   $report = deployments::combine_reports($stage_report, $scm_data, $ia_envs_report)
 
+  ## Interact with ServiceNow
+  # Report analyzed stage result to ServiceNow DevOps
+  deployments::servicenow_devops_webhook($snow_endpoint, $report)
+  if $snow_change_request {
+    if $snow_changereq_endpoint == undef {
+      fail_plan('No endpoint specified for ServiceNow Change Requests!', 'no_endpoint_error')
+    }
+    # Trigger Change Request workflow in ServiceNow DevOps
+    $actual_current_stage = deployments::get_running_stage()
+    deployments::servicenow_devops_change_request($snow_changereq_endpoint, $report, $actual_current_stage)
+  }
 }
