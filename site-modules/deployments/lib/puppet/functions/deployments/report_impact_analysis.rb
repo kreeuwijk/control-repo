@@ -22,16 +22,16 @@ Puppet::Functions.create_function(:'deployments::report_impact_analysis') do
     @report['state'] = impact_analysis['state']
     impact_analysis['results'].each do |env_result|
       result_report = {}
-      result_report['environment'] = env_result['environment']
-      result_report['resultId'] = env_result['environmentResultId']
-      result_report['nodeGroupId'] = env_result['nodeGroupId']
-      result_report['state'] = env_result['state']
-      result_report['totalNodeCount'] = env_result['totalNodeCount']
-      result_report['totalResourceChangeCount'] = env_result['totalResourceChangeCount']
-      add2log(' Impact Analysis report on environment: ' + result_report['environment'])
-      add2log('  Impact Analysis state: ' + result_report['state'])
-      add2log('  Total Nodes affected: ' + result_report['totalNodeCount'].to_s)
-      add2log('  Total Resources affected: ' + result_report['totalResourceChangeCount'].to_s)
+      result_report['IA_environment'] = env_result['environment']
+      result_report['IA_resultId'] = env_result['environmentResultId']
+      result_report['IA_nodeGroupId'] = env_result['nodeGroupId']
+      result_report['IA_state'] = env_result['state']
+      result_report['IA_totalNodeCount'] = env_result['totalNodeCount']
+      result_report['IA_totalResourceChangeCount'] = env_result['totalResourceChangeCount']
+      add2log(' Impact Analysis report on environment: ' + result_report['IA_environment'])
+      add2log('  Impact Analysis state: ' + result_report['IA_state'])
+      add2log('  Total Nodes affected: ' + result_report['IA_totalNodeCount'].to_s)
+      add2log('  Total Resources affected: ' + result_report['IA_totalResourceChangeCount'].to_s)
       @report['results'].append(result_report)
     end
     @report

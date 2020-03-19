@@ -55,14 +55,13 @@ plan deployments::servicenow_integration(
     $ia_report = deployments::report_impact_analysis($impact_analysis)
 
     $ia_envs_report = $ia_report['results'].map |$ia_env_report| {
-      $impacted_nodes_result = cd4pe_deployments::search_impacted_nodes($ia_env_report['resultId'], $cookie)
+      $impacted_nodes_result = cd4pe_deployments::search_impacted_nodes($ia_env_report['IA_resultId'], $cookie)
       $impacted_nodes = deployments::eval_result($impacted_nodes_result)
-      deployments::report_impacted_nodes($impacted_nodes, $max_changes_per_node)
+      deployments::report_impacted_nodes($ia_env_report, $impacted_nodes, $max_changes_per_node)
     }
-    warning($ia_envs_report)
   }
-
-  #$report = $stage_report + $scm_data
+  $report = $stage_report + $scm_data + $ia_envs_report
+  print_json($report)
 
 
 }
