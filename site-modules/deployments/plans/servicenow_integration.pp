@@ -10,8 +10,15 @@ plan deployments::servicenow_integration(
 
 ){
   # Read relevant CD4PE environment variables
-  $repo_type = system::env('REPO_TYPE')
-  $commit_sha = system::env('COMMIT')
+  $repo_type         = system::env('REPO_TYPE')
+  $commit_sha        = system::env('COMMIT')
+  #$control_repo_name = system::env('CONTROL_REPO_NAME')
+  #$module_name       = system::env('MODULE_NAME')
+
+  #$repo_name = $repo_type ? {
+  #  'CONTROL_REPO' => $control_repo_name,
+  #  'MODULE' => $module_name
+  #}
 
   # Find out which stage we should report on first
   if $ia_stage == undef {
