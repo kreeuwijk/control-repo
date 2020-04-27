@@ -6,7 +6,7 @@ Puppet::Functions.create_function(:'deployments::servicenow_devops_change_reques
   dispatch :servicenow_devops_change_request do
     required_param 'String', :endpoint
     required_param 'Hash', :report
-    required_param 'Integer', :current_stage
+    required_param 'String', :current_stage
   end
 
   def servicenow_devops_change_request(endpoint, report, current_stage)
@@ -17,7 +17,7 @@ Puppet::Functions.create_function(:'deployments::servicenow_devops_change_reques
     changereq['workspace']       = report['build']['owner']
     changereq['repoName']        = report['build']['repo_name']
     changereq['repoType']        = report['build']['repo_type']
-    changereq['promoteToStage']  = current_stage + 1
+    changereq['promoteToStage']  = current_stage.to_i + 1
     changereq['scm_branch']      = report['scm']['branch']
     bln_ia_safe_verdict = true
     report['notes'].each do |ia|

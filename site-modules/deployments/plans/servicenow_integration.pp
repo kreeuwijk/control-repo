@@ -24,7 +24,7 @@ plan deployments::servicenow_integration(
   if $ia_stage == undef {
     $stage_num = deployments::get_running_stage()
   } else {
-    $stage_num = $ia_stage
+    $stage_num = "${ia_stage}"
   }
 
   # Get a cookie for function calls that need it
