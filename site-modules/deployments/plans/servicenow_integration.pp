@@ -25,14 +25,13 @@ plan deployments::servicenow_integration(
   }
 
   # Find the pipeline ID for the commit SHA
-  $pipeline_search_result = cd4pe_deployments::search_pipeline($repo_name, $commit_sha)
-  $pipeline_search_hash = deployments::eval_result($pipeline_search_result)
-  $pipeline_id = $pipeline_search_hash['id']
+  $pipeline_id_result = cd4pe_deployments::search_pipeline($repo_name, $commit_sha)
+  $pipeline_id = deployments::eval_result($pipeline_search_result)
 
   # Loop until items in the pipeline stage are done
   $loop_result = ctrl::do_until('limit'=>240) || {
     # Wait 15 seconds for each loop
-    ctrl::sleep(1)
+    ctrl::sleep(15)
     # Get the current pipeline stage status (temporary variables that don't exist outside this loop)
     $pipeline_result = cd4pe_deployments::get_pipeline_trigger_event($repo_name, $pipeline_id, $commit_sha)
     $pipeline = deployments::eval_result($pipeline_result)
