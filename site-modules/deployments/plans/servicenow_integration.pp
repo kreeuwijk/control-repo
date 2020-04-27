@@ -18,7 +18,7 @@ plan deployments::servicenow_integration(
   }
 
   # Find out which stage we should report on first
-  if $ia_stage == undef {
+  if $report_stage == undef {
     $stage_num = deployments::get_running_stage()
   } else {
     $stage_num = "${report_stage}"
