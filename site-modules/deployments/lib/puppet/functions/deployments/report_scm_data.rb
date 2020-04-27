@@ -6,9 +6,13 @@ Puppet::Functions.create_function(:'deployments::report_scm_data') do
   def report_scm_data(pipeline)
     report = {}
     report['scm'] = {}
-    report['scm']['url'] = pipeline['buildStage']['imageEvent']['repoUrl']
-    report['scm']['branch'] = pipeline['buildStage']['imageEvent']['branch']
-    report['scm']['commit'] = pipeline['buildStage']['imageEvent']['commitId']
+    report['scm']['url'] =  if pipeline['triggerType'] == 'VERSION_CONTROL_PUSH'
+                              pipeline['webhookEvent']['repoUrl']
+                            else
+                              ''
+                            end
+    report['scm']['branch'] = pipeline['branch']
+    report['scm']['commit'] = pipeline['commitId']
     report['scm']['changes'] = []
     report['scm']['culprits'] = []
     report

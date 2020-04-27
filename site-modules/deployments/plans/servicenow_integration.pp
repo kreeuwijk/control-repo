@@ -14,7 +14,7 @@ plan deployments::servicenow_integration(
   $commit_sha        = system::env('COMMIT')
   #$control_repo_name = system::env('CONTROL_REPO_NAME')
   #$module_name       = system::env('MODULE_NAME')
- 
+
   #$repo_name = $repo_type ? {
   #  'CONTROL_REPO' => $control_repo_name,
   #  'MODULE' => $module_name
@@ -39,25 +39,23 @@ plan deployments::servicenow_integration(
   # Loop until items in the pipeline stage are done
   $loop_result = ctrl::do_until('limit'=>240) || {
     # Wait 15 seconds for each loop
-    ctrl::sleep(15)
+    ctrl::sleep(1)
     # Get the current pipeline stage status (temporary variables that don't exist outside this loop)
-    $pipeline_result = cd4pe_deployments::get_pipeline($repo_type, $repo_name, $pipeline_id, $cookie)
+    $pipeline_result = cd4pe_deployments::get_pipeline_trigger_event($repo_name, $pipeline_id, $commit_sha, $cookie)
     $pipeline = deployments::eval_result($pipeline_result)
-    $pipeline_stage = $pipeline['stages'].filter |$stage| { $stage['stageNum'] == $stage_num }
     # Check if items in the pipeline stage are done
-    deployments::pipeline_stage_done($pipeline_stage)
+    deployments::pipeline_stage_done($pipeline['eventsByStage'][$stage_num])
   }
   unless $loop_result {
     fail_plan('Timeout waiting for pipeline stage to finish!', 'timeout_error')
   }
-  # Generate the final pipeline variables
-  $pipeline_result = cd4pe_deployments::get_pipeline($repo_type, $repo_name, $pipeline_id, $cookie)
+  # Now that the relevant jobs in the pipeline stage have completed, generate the final pipeline variables
+  $pipeline_result = cd4pe_deployments::get_pipeline_trigger_event($repo_name, $pipeline_id, $commit_sha, $cookie)
   $pipeline = deployments::eval_result($pipeline_result)
-  $pipeline_stage = $pipeline['stages'].filter |$stage| { $stage['stageNum'] == $stage_num }
 
   # Gather pipeline stage reporting
   $scm_data = deployments::report_scm_data($pipeline)
-  $stage_report = deployments::report_pipeline_stage($pipeline_stage, $pipeline_search_hash)
+  $stage_report = deployments::report_pipeline_stage($pipeline, $stage_num, $repo_name)
 
   # See if the stage contains an Impact Analysis
   $ia_events = $stage_report['build']['events'].filter |$event| { $event['eventType'] == 'IA' }

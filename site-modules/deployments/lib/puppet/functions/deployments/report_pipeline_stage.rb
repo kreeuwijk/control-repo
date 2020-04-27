@@ -2,8 +2,9 @@
 
 Puppet::Functions.create_function(:'deployments::report_pipeline_stage') do
   dispatch :report_pipeline_stage do
-    required_param 'Tuple', :pipeline_stage
-    required_param 'Hash', :pipeline_search_hash
+    required_param 'Hash', :pipeline
+    required_param 'String', :stage_number
+    required_param 'String', :repo_name
   end
 
   def add2log(content)
@@ -27,7 +28,7 @@ Puppet::Functions.create_function(:'deployments::report_pipeline_stage') do
     end
   end
 
-  def report_pipeline_stage(pipeline_stage, pipeline_search_hash)
+  def report_pipeline_stage(pipeline, stage_number, repo_name)
     @report = {}
     @report['name'] = 'cd4pe-pipeline'
     @report['display_name'] = 'cd4pe-pipeline'
@@ -37,46 +38,46 @@ Puppet::Functions.create_function(:'deployments::report_pipeline_stage') do
     @report['artifacts'] = {}
     @report['log'] = ''
     @report['build']['full_url'] = ENV['WEB_UI_ENDPOINT'] + '/' + ENV['DEPLOYMENT_OWNER'] + '/repositories/' +
-                                   pipeline_search_hash['cd4pe_repoName'] + '?pipelineId=' + pipeline_search_hash['id'] +
-                                   '&eventId=' + pipeline_search_hash['eventId'].to_s
-    @report['build']['number'] = pipeline_search_hash['eventId']
+                                   repo_name + '?pipelineId=' + pipeline['pipelineId'] +
+                                   '&eventId=' + pipeline['id'].to_s
+    @report['build']['number'] = pipeline['id']
     @report['build']['owner'] = ENV['DEPLOYMENT_OWNER']
-    @report['build']['pipeline'] = pipeline_search_hash['id']
-    @report['build']['phase'] = pipeline_stage[0]['stageName']
-    @report['build']['repo_name'] = pipeline_search_hash['cd4pe_repoName']
+    @report['build']['pipeline'] = pipeline['pipelineId']
+    @report['build']['phase'] = pipeline['stageNames'][stage_number]
+    @report['build']['repo_name'] = repo_name
     @report['build']['repo_type'] = ENV['REPO_TYPE']
-    @report['build']['queue_id'] = pipeline_stage[0]['stageNum'].to_i
-    @report['build']['url'] = '/' + ENV['DEPLOYMENT_OWNER'] + '/repositories/' + pipeline_search_hash['cd4pe_repoName'] +
-                              '?pipelineId=' + pipeline_search_hash['id'] + '&eventId=' + pipeline_search_hash['eventId'].to_s
-    @report['url'] = ENV['DEPLOYMENT_OWNER'] + '/repositories/' + pipeline_search_hash['cd4pe_repoName'] +
-                     '?pipelineId=' + pipeline_search_hash['id']
-    add2log('Pipeline #: ' + pipeline_search_hash['eventId'].to_s)
-    add2log(' Stage ' + pipeline_stage[0]['stageNum'].to_s + ': ' + pipeline_stage[0]['stageName'].to_s)
+    @report['build']['queue_id'] = stage_number.to_i
+    @report['build']['url'] = '/' + ENV['DEPLOYMENT_OWNER'] + '/repositories/' + repo_name +
+                              '?pipelineId=' + pipeline['pipelineId'] + '&eventId=' + pipeline['id'].to_s
+    @report['url'] = ENV['DEPLOYMENT_OWNER'] + '/repositories/' + repo_name +
+                     '?pipelineId=' + pipeline['pipelineId']
+    add2log('Pipeline #: ' + pipeline['id'].to_s)
+    add2log(' Stage ' + stage_number.to_s + ': ' + pipeline['stageNames'][stage_number])
     bln_reporting_job_found = false
-    pipeline_stage[0]['destinations'].each do |event|
-      next unless event.key?('deploymentAppEvent')
-      next unless event['deploymentAppEvent']['deploymentPlanName'] == 'deployments::servicenow_integration'
+    pipeline['eventsByStage'][stage_number].each do |event|
+      next unless event['eventType'] == 'DEPLOYMENT'
+      next unless event['deploymentPlanName'] == 'deployments::servicenow_integration'
 
       bln_reporting_job_found = true
     end
     correction = bln_reporting_job_found ? 1 : 0
-    add2log('  Number of events in stage: ' + (pipeline_stage[0]['destinations'].count - correction).to_s)
+    add2log('  Number of events in stage: ' + (pipeline['eventsByStage'][stage_number].count - correction).to_s)
     bln_stage_success = true
-    pipeline_stage[0]['destinations'].each do |event|
+    pipeline['eventsByStage'][stage_number].each do |event|
       eventinfo = {}
-      if event.key?('vmJobEvent')
-        eventinfo['eventName'] = event['vmJobEvent']['jobName']
+      if event['eventType'] == 'VMJOB'
+        eventinfo['eventName'] = event['jobName']
         eventinfo['eventType'] = 'JOB'
-        eventinfo['eventNumber'] = event['vmJobEvent']['vmJobInstanceId']
-        eventinfo['eventTime'] = event['vmJobEvent']['eventTime']
-        eventinfo['eventResult'] = jobstatus(event['vmJobEvent']['jobStatus'])
+        eventinfo['eventNumber'] = event['vmJobInstanceId']
+        eventinfo['eventTime'] = event['eventTime']
+        eventinfo['eventResult'] = jobstatus(event['jobStatus'])
         begin
-          eventinfo['startTime'] = event['vmJobEvent'].fetch('jobStartTime', event['vmJobEvent']['jobEndTime'])
+          eventinfo['startTime'] = event.fetch('jobStartTime', event.fetch('jobEndTime'))
         rescue
           eventinfo['startTime'] = 0
         end
         begin
-          eventinfo['endTime'] = event['vmJobEvent']['jobEndTime']
+          eventinfo['endTime'] = event.fetch('jobEndTime')
         rescue
           eventinfo['endTime'] = 0
         end
@@ -86,34 +87,34 @@ Puppet::Functions.create_function(:'deployments::report_pipeline_stage') do
         if eventinfo['eventResult'] != 'SUCCESS'
           bln_stage_success = false
         end
-      elsif event.key?('deploymentAppEvent')
-        next unless event['deploymentAppEvent']['deploymentPlanName'] != 'deployments::servicenow_integration'
+      elsif event['eventType'] == 'DEPLOYMENT'
+        next unless event['deploymentPlanName'] != 'deployments::servicenow_integration'
 
-        eventinfo['eventName'] = event['deploymentAppEvent']['deploymentPlanName'] + ' to ' + event['deploymentAppEvent']['targetBranch']
+        eventinfo['eventName'] = event['deploymentPlanName'] + ' to ' + event['targetBranch']
         eventinfo['eventType'] = 'DEPLOY'
-        eventinfo['eventNumber'] = event['deploymentAppEvent']['deploymentId']
-        eventinfo['eventTime'] = event['deploymentAppEvent']['eventTime']
-        eventinfo['eventResult'] = event['deploymentAppEvent']['deploymentState']
-        eventinfo['startTime'] = if event['deploymentAppEvent']['deploymentStartTime'].zero?
+        eventinfo['eventNumber'] = event['deploymentId']
+        eventinfo['eventTime'] = event['eventTime']
+        eventinfo['eventResult'] = event['deploymentState']
+        eventinfo['startTime'] = if event['deploymentStartTime'].zero?
                                    event['deploymentEndTime']
                                  else
-                                   event['deploymentAppEvent']['deploymentStartTime']
+                                   event['deploymentStartTime']
                                  end
-        eventinfo['endTime'] = event['deploymentAppEvent']['deploymentEndTime']
+        eventinfo['endTime'] = event['deploymentEndTime']
         eventinfo['executionTime'] = (eventinfo['endTime'] - eventinfo['startTime']) / 1000
         add2log('   Deployment name: ' + eventinfo['eventName'])
         add2log('    Deployment status: ' + eventinfo['eventResult'])
         if eventinfo['eventResult'] != 'DONE'
           bln_stage_success = false
         end
-      elsif event.key?('peImpactAnalysisEvent')
+      elsif event['eventType'] == 'PEIMPACTANALYSIS'
         eventinfo['eventName'] = 'Impact Analysis'
         eventinfo['eventType'] = 'IA'
-        eventinfo['eventNumber'] = event['peImpactAnalysisEvent']['impactAnalysisId']
-        eventinfo['eventTime'] = event['peImpactAnalysisEvent']['eventTime']
-        eventinfo['eventResult'] = event['peImpactAnalysisEvent']['state']
-        eventinfo['startTime'] = event['peImpactAnalysisEvent'].fetch('startTime', event['peImpactAnalysisEvent']['endTime'])
-        eventinfo['endTime'] = event['peImpactAnalysisEvent']['endTime']
+        eventinfo['eventNumber'] = event['impactAnalysisId']
+        eventinfo['eventTime'] = event['eventTime']
+        eventinfo['eventResult'] = event['state']
+        eventinfo['startTime'] = event.fetch('startTime', event['endTime'])
+        eventinfo['endTime'] = event['endTime']
         eventinfo['executionTime'] = (eventinfo['endTime'] - eventinfo['startTime']) / 1000
         add2log('   ' + eventinfo['eventName'])
         add2log('    Impact Analysis status: ' + eventinfo['eventResult'])
