@@ -74,12 +74,12 @@ Puppet::Functions.create_function(:'deployments::report_pipeline_stage') do
         begin
           eventinfo['startTime'] = event.fetch('jobStartTime', event.fetch('jobEndTime'))
         rescue
-          eventinfo['startTime'] = 0
+          eventinfo['startTime'] = eventinfo['eventTime']
         end
         begin
           eventinfo['endTime'] = event.fetch('jobEndTime')
         rescue
-          eventinfo['endTime'] = 0
+          eventinfo['endTime'] = eventinfo['eventTime']
         end
         eventinfo['executionTime'] = (eventinfo['endTime'] - eventinfo['startTime']) / 1000
         add2log('   Event name: ' + eventinfo['eventName'])
