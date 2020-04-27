@@ -1,7 +1,7 @@
 plan deployments::servicenow_integration(
   String $snow_endpoint,
   Optional[Integer] $max_changes_per_node = 10,
-  Optional[Integer] $ia_stage = undef,
+  Optional[Integer] $report_stage = undef,
   Optional[Boolean] $snow_change_request = false,
   Optional[String] $snow_changereq_endpoint = undef
 
@@ -21,7 +21,7 @@ plan deployments::servicenow_integration(
   if $ia_stage == undef {
     $stage_num = deployments::get_running_stage()
   } else {
-    $stage_num = "${ia_stage}"
+    $stage_num = "${report_stage}"
   }
 
   # Find the pipeline ID for the commit SHA
