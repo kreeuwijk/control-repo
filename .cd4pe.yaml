@@ -1,6 +1,7 @@
 config:
   enable_pull_requests_from_forks: false
   deployment_policy_branch: "production"
+  enable_pe_plans: true
 pipelines:
   master:
     triggers:
@@ -10,11 +11,7 @@ pipelines:
     - name: "Code Validation"
       steps:
       - type: "JOB"
-        name: "control-repo-manifest-validate"
-        concurrent_compilations: 0
-        all_deployments: false
-      - type: "JOB"
-        name: "control-repo-hiera-syntax-validate"
+        name: "control-repo-puppetfile-syntax-validate"
         concurrent_compilations: 0
         all_deployments: false
       - type: "JOB"
@@ -22,16 +19,26 @@ pipelines:
         concurrent_compilations: 0
         all_deployments: false
       - type: "JOB"
-        name: "control-repo-puppetfile-syntax-validate"
+        name: "control-repo-hiera-syntax-validate"
         concurrent_compilations: 0
         all_deployments: false
-      auto_promote: "all_succeeded"
-    - name: "Report on Code Validation"
-      steps:
       - type: "JOB"
-        name: "Report Pipeline Stage - Code Validation"
+        name: "control-repo-manifest-validate"
         concurrent_compilations: 0
         all_deployments: false
+      - type: "DEPLOYMENT"
+        name: "Deployment to production on puppet-enterprise"
+        policy:
+          name: "deployments::servicenow_integration"
+        parameters:
+          snow_endpoint: "https://ven02941.service-now.com/api/x_radi_rapdev_pupp/pipeline_webhook"
+        timeout: 3600000
+        concurrent_compilations: 0
+        all_deployments: false
+        pe_server: "puppet-enterprise"
+        target:
+          type: "NODE_GROUP"
+          node_group_id: "71b3ea05-e5a1-4d8b-a05c-ae49058814d7"
       auto_promote: "all_succeeded"
     - name: "Deploy to Dev"
       steps:
@@ -49,10 +56,20 @@ pipelines:
       auto_promote: "all_succeeded"
     - name: "Report on Deploy to Dev"
       steps:
-      - type: "JOB"
-        name: "Report Pipeline Stage - Deploy to Dev"
+      - type: "DEPLOYMENT"
+        name: "Deployment to production on puppet-enterprise"
+        policy:
+          name: "deployments::servicenow_integration"
+        parameters:
+          report_stage: 2
+          snow_endpoint: "https://ven02941.service-now.com/api/x_radi_rapdev_pupp/pipeline_webhook"
+        timeout: 3600000
         concurrent_compilations: 0
         all_deployments: false
+        pe_server: "puppet-enterprise"
+        target:
+          type: "NODE_GROUP"
+          node_group_id: "71b3ea05-e5a1-4d8b-a05c-ae49058814d7"
       auto_promote: "all_succeeded"
     - name: "Impact Analysis"
       steps:
@@ -61,20 +78,38 @@ pipelines:
         - "Deployment to production on puppet-enterprise"
         concurrent_compilations: 10
         all_deployments: false
-      auto_promote: "all_succeeded"
-    - name: "Report on Impact Analysis"
-      steps:
-      - type: "JOB"
-        name: "Report Pipeline Stage - Impact Analysis"
+      - type: "PULL_REQUEST_GATE"
         concurrent_compilations: 0
         all_deployments: false
       auto_promote: "all_succeeded"
-    - name: "Deploy to Prod"
+    - name: "ServiceNow Change Request"
       steps:
       - type: "DEPLOYMENT"
         name: "Deployment to production on puppet-enterprise"
         policy:
-          name: "cd4pe_deployments::eventual_consistency"
+          name: "deployments::servicenow_integration"
+        parameters:
+          max_changes_per_node: 10
+          report_stage: 4
+          snow_change_request: true
+          snow_endpoint: "https://ven02941.service-now.com/api/x_radi_rapdev_pupp/pipeline_webhook"
+          snow_changereq_endpoint: "https://ven02941.service-now.com/api/x_radi_rapdev_pupp/change_request"
+        timeout: 3600000
+        concurrent_compilations: 0
+        all_deployments: false
+        pe_server: "puppet-enterprise"
+        target:
+          type: "NODE_GROUP"
+          node_group_id: "71b3ea05-e5a1-4d8b-a05c-ae49058814d7"
+      auto_promote: false
+    - name: "Deploy to Production"
+      steps:
+      - type: "DEPLOYMENT"
+        name: "Deployment to production on puppet-enterprise"
+        policy:
+          name: "cd4pe_deployments::direct"
+        parameters:
+          noop: false
         timeout: 3600000
         concurrent_compilations: 0
         all_deployments: false
@@ -82,16 +117,5 @@ pipelines:
         target:
           type: "NODE_GROUP"
           node_group_id: "9ae11ecd-dda0-408c-b73d-7345ffb26c80"
-      - type: "JOB"
-        name: "Request SNOW change - Deploy to Prod"
-        concurrent_compilations: 0
-        all_deployments: false
-      auto_promote: "all_completed"
-    - name: "Report on Deploy to Prod"
-      steps:
-      - type: "JOB"
-        name: "Report Pipeline Stage - Deploy to Prod"
-        concurrent_compilations: 0
-        all_deployments: false
       auto_promote: false
 spec_version: "V1"
