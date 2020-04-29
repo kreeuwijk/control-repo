@@ -21,7 +21,7 @@ plan deployments::servicenow_integration(
   if $report_stage == undef {
     $stage_num = deployments::get_running_stage()
   } else {
-    $stage_num = "${report_stage}"
+    $stage_num = "${report_stage}" # lint:ignore:only_variable_string
   }
 
   # Find the pipeline ID for the commit SHA
