@@ -1,3 +1,0 @@
-mod 'servicenow_integration', # not published on the forge
-  :git    => 'https://github.com/kreeuwijk/puppetlabs-servicenow_integration.git',
-  :branch => 'master'
