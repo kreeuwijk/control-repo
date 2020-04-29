@@ -18,10 +18,10 @@ Puppet::Functions.create_function(:'deployments::report_pipeline_stage') do
 
   def jobstatus(job_status)
     case job_status
-    when 'f' then 'FAILURE'
+    when 'f' then 'FAILED'
     when 's' then 'SUCCESS'
     when 'r' then 'RUNNING'
-    when 'a' then 'CANCELED'
+    when 'a' then 'CANCELLED'
     when 'q' then 'QUEUED'
     else
       "Unknown status: #{job_status}"
