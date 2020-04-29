@@ -26,7 +26,7 @@ plan deployments::servicenow_integration(
 
   # Find the pipeline ID for the commit SHA
   $pipeline_id_result = cd4pe_deployments::search_pipeline($repo_name, $commit_sha)
-  $pipeline_id = deployments::eval_result($pipeline_id_result)
+  $pipeline_id = cd4pe_deployments::evaluate_result($pipeline_id_result)
 
   # Loop until items in the pipeline stage are done
   $loop_result = ctrl::do_until('limit'=>240) || {
@@ -34,7 +34,7 @@ plan deployments::servicenow_integration(
     ctrl::sleep(15)
     # Get the current pipeline stage status (temporary variables that don't exist outside this loop)
     $pipeline_result = cd4pe_deployments::get_pipeline_trigger_event($repo_name, $pipeline_id, $commit_sha)
-    $pipeline = deployments::eval_result($pipeline_result)
+    $pipeline = cd4pe_deployments::evaluate_result($pipeline_result)
     # Check if items in the pipeline stage are done
     deployments::pipeline_stage_done($pipeline['eventsByStage'][$stage_num])
   }
@@ -43,7 +43,7 @@ plan deployments::servicenow_integration(
   }
   # Now that the relevant jobs in the pipeline stage have completed, generate the final pipeline variables
   $pipeline_result = cd4pe_deployments::get_pipeline_trigger_event($repo_name, $pipeline_id, $commit_sha)
-  $pipeline = deployments::eval_result($pipeline_result)
+  $pipeline = cd4pe_deployments::evaluate_result($pipeline_result)
 
   # Gather pipeline stage reporting
   $scm_data = deployments::report_scm_data($pipeline)
@@ -55,13 +55,13 @@ plan deployments::servicenow_integration(
     # Get the Impact Analysis information
     $impact_analysis_id = $ia_events[0]['eventNumber']
     $impact_analysis_result = cd4pe_deployments::get_impact_analysis($impact_analysis_id)
-    $impact_analysis = deployments::eval_result($impact_analysis_result)
+    $impact_analysis = cd4pe_deployments::evaluate_result($impact_analysis_result)
     $ia_report = deployments::report_impact_analysis($impact_analysis)
 
     # Generate the detailed Impact Analysis report
     $ia_envs_report = $ia_report['results'].map |$ia_env_report| {
       $impacted_nodes_result = cd4pe_deployments::search_impacted_nodes($ia_env_report['IA_resultId'])
-      $impacted_nodes = deployments::eval_result($impacted_nodes_result)
+      $impacted_nodes = cd4pe_deployments::evaluate_result($impacted_nodes_result)
       deployments::report_impacted_nodes($ia_env_report, $impacted_nodes, $max_changes_per_node)
     }
   } else {
