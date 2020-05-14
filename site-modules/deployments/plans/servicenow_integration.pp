@@ -3,8 +3,8 @@ plan deployments::servicenow_integration(
   Optional[Integer] $max_changes_per_node = 10,
   Optional[String] $report_stage = undef,
   Optional[Boolean] $snow_change_request = false,
-  Optional[String] $snow_changereq_endpoint = undef
-
+  Optional[String] $snow_changereq_endpoint = undef,
+  Optional[String] $stage_to_promote_to = undef
 ){
   # Read relevant CD4PE environment variables
   $repo_type         = system::env('REPO_TYPE')
@@ -91,8 +91,19 @@ plan deployments::servicenow_integration(
     if $snow_changereq_endpoint == undef {
       fail_plan('No endpoint specified for ServiceNow Change Requests!', 'no_endpoint_error')
     }
+    # Process full pipeline structure to determine stage number of stage to promote to
+    $pipeline_structure_result = cd4pe_deployments::get_pipeline($repo_type, $repo_name, $pipeline_id)
+    $pipeline_structure = cd4pe_deployments::evaluate_result($pipeline_structure_result)
+    unless $stage_to_promote_to {
+      fail_plan('No stage specified for ServiceNow to promote approved changes to!', 'no_promote_stage_error')
+    }
+    $promote_stage = $pipeline_structure['stages'].filter |$item| { $item['stageName'] == $stage_to_promote_to }
+    unless $promote_stage.length == 1 {
+      fail_plan("Provided stage_to_promote_to '${stage_to_promote_to}' could not be found in pipeline. \
+      Please ensure a valid stage name is specified!", 'stage_not_found_error')
+    }
+    $promote_stage_number = $promote_stage[0]['stageNum']
     # Trigger Change Request workflow in ServiceNow DevOps
-    $actual_current_stage = deployments::get_running_stage()
-    deployments::servicenow_devops_change_request($snow_changereq_endpoint, $report, $actual_current_stage)
+    deployments::servicenow_devops_change_request($snow_changereq_endpoint, $report, $promote_stage_number)
   }
 }
