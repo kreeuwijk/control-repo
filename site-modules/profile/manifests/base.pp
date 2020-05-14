@@ -4,12 +4,9 @@
 class profile::base {
 
   $agentruninterval = lookup('puppet_agent_run_interval')
-  $agentversion = lookup('puppet_agent_version')
 
-  if versioncmp($facts['aio_agent_version'],$agentversion) == -1 {
-    class { 'puppet_agent':
-      package_version => $agentversion
-    }
+  class { 'puppet_agent':
+    package_version => 'auto'
   }
 
   @@host { $trusted['certname'] :
