@@ -1,7 +1,7 @@
 plan deployments::servicenow_integration(
   String $snow_endpoint,
   Optional[Integer] $max_changes_per_node = 10,
-  Optional[Integer] $report_stage = undef,
+  Optional[String] $report_stage = undef,
   Optional[Boolean] $snow_change_request = false,
   Optional[String] $snow_changereq_endpoint = undef
 
@@ -17,11 +17,9 @@ plan deployments::servicenow_integration(
     'MODULE' => $module_name
   }
 
-  # Find out which stage we should report on first
-  if $report_stage == undef {
+  # Set the stage number if we need to auto-detect it
+  unless $report_stage {
     $stage_num = deployments::get_running_stage()
-  } else {
-    $stage_num = "${report_stage}" # lint:ignore:only_variable_string
   }
 
   # Find the pipeline ID for the commit SHA
@@ -35,6 +33,16 @@ plan deployments::servicenow_integration(
     # Get the current pipeline stage status (temporary variables that don't exist outside this loop)
     $pipeline_result = cd4pe_deployments::get_pipeline_trigger_event($repo_name, $pipeline_id, $commit_sha)
     $pipeline = cd4pe_deployments::evaluate_result($pipeline_result)
+    # If $report_stage is set, set the stage number by searching the pipeline output
+    if $report_stage {
+      $stage = $pipeline['stageNames'].filter |$stagenumber,$stagename| { $stagename == $report_stage }
+      unless $stage.length == 1 {
+        fail_plan("Provided report_stage '${report_stage}' could not be found in pipeline. \
+        If you manually promoted the pipeline, please ensure you promote at a point that \
+        includes the stage to report on!", 'stage_not_found_error')
+      }
+      $stage_num = $stage.keys[0]
+    }
     # Check if items in the pipeline stage are done
     deployments::pipeline_stage_done($pipeline['eventsByStage'][$stage_num])
   }
@@ -44,6 +52,11 @@ plan deployments::servicenow_integration(
   # Now that the relevant jobs in the pipeline stage have completed, generate the final pipeline variables
   $pipeline_result = cd4pe_deployments::get_pipeline_trigger_event($repo_name, $pipeline_id, $commit_sha)
   $pipeline = cd4pe_deployments::evaluate_result($pipeline_result)
+  # If $report_stage is set, set the stage number by searching the pipeline output
+  if $report_stage {
+    $stage = $pipeline['stageNames'].filter |$stagenumber,$stagename| { $stagename == $report_stage }
+    $stage_num = $stage.keys[0]
+  }
 
   # Gather pipeline stage reporting
   $scm_data = deployments::report_scm_data($pipeline)
