@@ -30,11 +30,22 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
     # changereq['impact_analysis'] = bln_ia_safe_verdict ? 'safe' : 'unsafe'
 
     # First, we need to create a new ServiceNow Change Request
-    api_path = '/api/sn_chg_rest/v1/change/normal'
     description = "Puppet CD4PE Automated Change Request for promoting commit #{report['scm']['commit']} to stage #{promote_to_stage}"
-    short_description = "Puppet CD4PE - promote #{report['scm']['commit'][0,7]} to stage #{promote_to_stage}"
-    request_uri = "#{endpoint}#{api_path}?description=#{description}&short_description=#{short_description}"
-    make_request(request_uri, :post, username, password)
+    short_description = "Puppet CD4PE - promote #{report['scm']['commit'][0, 7]} to stage #{promote_to_stage}"
+    request_uri = "#{endpoint}/api/sn_chg_rest/v1/change/normal?description=#{description}&short_description=#{short_description}"
+    changereq = make_request(request_uri, :post, username, password)
+    # Next, we associate the CIs that Impact Analysis flagged into the ticket
+    report['notes'].each do |ia|
+      array_of_cis = []
+      ia['IA_node_reports'].each_key do |node|
+        ci_req_uri = "#{endpoint}/api/now/table/cmdb_ci?sysparm_query=name=#{node}"
+        ci = make_request(ci_req_uri, :get, username, password)
+        array_of_cis.push(ci[result][0]['sys_id'])
+      end
+      assoc_ci_uri = "#{endpoint}/api/sn_chg_rest/v1/change/#{changereq['sys_id']['value']}/ci"
+      payload = { 'cmdb_ci_sys_ids' => array_of_cis.join(','), 'association_type' => 'affected' }
+      changereq = make_request(assoc_ci_uri, :post, username, password, payload)
+    end
   end
 
   def make_request(endpoint, type, username, password, payload = nil)
@@ -64,7 +75,8 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
           request.body = payload.to_json unless payload.nil?
         when :patch
           request = Net::HTTP::Patch.new(uri.request_uri)
-          request.body
+          request.body = payload.to_json unless payload.nil?
+        else
           raise Puppet::Error, "servicenow_change_request#make_request called with invalid request type #{type}"
         end
         request.basic_auth(username, password)
