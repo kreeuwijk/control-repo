@@ -61,14 +61,14 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
           request = Net::HTTP::Get.new(uri.request_uri)
         when :post
           request = Net::HTTP::Post.new(uri.request_uri)
-          request.set_form_data = payload.to_json unless payload.nil?
+          request.body = payload.to_json unless payload.nil?
         when :patch
           request = Net::HTTP::Patch.new(uri.request_uri)
-          request.set_form_data = payload.to_json unless payload.nil?
-        else
+          request.body
           raise Puppet::Error, "servicenow_change_request#make_request called with invalid request type #{type}"
         end
         request.basic_auth(username, password)
+        request['Content-Type'] = 'application/json'
         request['Accept'] = 'application/json'
         response = connection.request(request)
       rescue SocketError => e
