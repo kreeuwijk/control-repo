@@ -11,41 +11,46 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
     required_param 'Integer', :promote_to_stage
   end
 
-  def servicenow_change_request(endpoint, username, password, report, promote_to_stage)
-    # changereq = {}
-    # changereq['commitSHA']       = report['scm']['commit']
-    # changereq['deploymentId']    = report['build']['number']
-    # changereq['pipelineId']      = report['build']['pipeline']
-    # changereq['workspace']       = report['build']['owner']
-    # changereq['repoName']        = report['build']['repo_name']
-    # changereq['repoType']        = report['build']['repo_type']
-    # changereq['promoteToStage']  = promote_to_stage
-    # changereq['scm_branch']      = report['scm']['branch']
-    # bln_ia_safe_verdict = true
-    # report['notes'].each do |ia|
-    #   unless ia['IA_verdict'] == 'safe'
-    #     bln_ia_safe_verdict = false
-    #   end
-    # end
-    # changereq['impact_analysis'] = bln_ia_safe_verdict ? 'safe' : 'unsafe'
+  # changereq = {}
+  # changereq['commitSHA']       = report['scm']['commit']
+  # changereq['deploymentId']    = report['build']['number']
+  # changereq['pipelineId']      = report['build']['pipeline']
+  # changereq['workspace']       = report['build']['owner']
+  # changereq['repoName']        = report['build']['repo_name']
+  # changereq['repoType']        = report['build']['repo_type']
+  # changereq['promoteToStage']  = promote_to_stage
+  # changereq['scm_branch']      = report['scm']['branch']
+  # bln_ia_safe_verdict = true
+  # report['notes'].each do |ia|
+  #   unless ia['IA_verdict'] == 'safe'
+  #     bln_ia_safe_verdict = false
+  #   end
+  # end
+  # changereq['impact_analysis'] = bln_ia_safe_verdict ? 'safe' : 'unsafe'
 
+  def servicenow_change_request(endpoint, username, password, report, promote_to_stage)
     # First, we need to create a new ServiceNow Change Request
     description = "Puppet CD4PE Automated Change Request for promoting commit #{report['scm']['commit']} to stage #{promote_to_stage}"
     short_description = "Puppet CD4PE - promote #{report['scm']['commit'][0, 7]} to stage #{promote_to_stage}"
     request_uri = "#{endpoint}/api/sn_chg_rest/v1/change/normal?description=#{description}&short_description=#{short_description}"
-    changereq = make_request(request_uri, :post, username, password)
+    changereq_json = make_request(request_uri, :post, username, password)
+    changereq = JSON.parse(changereq_json.body)
     # Next, we associate the CIs that Impact Analysis flagged into the ticket
     report['notes'].each do |ia|
       array_of_cis = []
       ia['IA_node_reports'].each_key do |node|
         ci_req_uri = "#{endpoint}/api/now/table/cmdb_ci?sysparm_query=name=#{node}"
-        ci = make_request(ci_req_uri, :get, username, password)
-        array_of_cis.push(ci[result][0]['sys_id'])
+        ci_json = make_request(ci_req_uri, :get, username, password)
+        ci = JSON.parse(ci_json.body)
+        array_of_cis.push(ci['result'][0]['sys_id'])
       end
-      assoc_ci_uri = "#{endpoint}/api/sn_chg_rest/v1/change/#{changereq['sys_id']['value']}/ci"
+      assoc_ci_uri = "#{endpoint}/api/sn_chg_rest/v1/change/#{changereq['result']['sys_id']['value']}/ci"
       payload = { 'cmdb_ci_sys_ids' => array_of_cis.join(','), 'association_type' => 'affected' }
-      changereq = make_request(assoc_ci_uri, :post, username, password, payload)
+      make_request(assoc_ci_uri, :post, username, password, payload)
     end
+    change_req_url = "#{endpoint}/api/now/table/change_request/#{changereq['result']['sys_id']['value']}"
+    payload = { 'risk_impact_analysis' => report['log'], 'assignment_group' => 'Change Management' }
+    make_request(change_req_url, :patch, username, password, payload)
   end
 
   def make_request(endpoint, type, username, password, payload = nil)
