@@ -88,7 +88,7 @@ Puppet::Functions.create_function(:'deployments::report_pipeline_stage') do
           bln_stage_success = false
         end
       elsif event['eventType'] == 'DEPLOYMENT'
-        next unless ['deployments::servicenow_integration', 'deployments::servicenow_devops_integration'].exclude?(event['deploymentPlanName'])
+        next if ['deployments::servicenow_integration', 'deployments::servicenow_devops_integration'].include?(event['deploymentPlanName'])
 
         eventinfo['eventName'] = event['deploymentPlanName'] + ' to ' + event['targetBranch']
         eventinfo['eventType'] = 'DEPLOY'
