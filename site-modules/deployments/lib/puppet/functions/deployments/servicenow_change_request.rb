@@ -5,31 +5,55 @@ require 'json'
 Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
   dispatch :servicenow_change_request do
     required_param 'String', :endpoint
+    required_param 'String', :username
+    required_param 'String', :password
     required_param 'Hash', :report
     required_param 'Integer', :promote_to_stage
   end
 
-  def servicenow_change_request(endpoint, report, promote_to_stage)
-    changereq = {}
-    changereq['commitSHA']       = report['scm']['commit']
-    changereq['deploymentId']    = report['build']['number']
-    changereq['pipelineId']      = report['build']['pipeline']
-    changereq['workspace']       = report['build']['owner']
-    changereq['repoName']        = report['build']['repo_name']
-    changereq['repoType']        = report['build']['repo_type']
-    changereq['promoteToStage']  = promote_to_stage
-    changereq['scm_branch']      = report['scm']['branch']
-    bln_ia_safe_verdict = true
+  # changereq = {}
+  # changereq['commitSHA']       = report['scm']['commit']
+  # changereq['deploymentId']    = report['build']['number']
+  # changereq['pipelineId']      = report['build']['pipeline']
+  # changereq['workspace']       = report['build']['owner']
+  # changereq['repoName']        = report['build']['repo_name']
+  # changereq['repoType']        = report['build']['repo_type']
+  # changereq['promoteToStage']  = promote_to_stage
+  # changereq['scm_branch']      = report['scm']['branch']
+  # bln_ia_safe_verdict = true
+  # report['notes'].each do |ia|
+  #   unless ia['IA_verdict'] == 'safe'
+  #     bln_ia_safe_verdict = false
+  #   end
+  # end
+  # changereq['impact_analysis'] = bln_ia_safe_verdict ? 'safe' : 'unsafe'
+
+  def servicenow_change_request(endpoint, username, password, report, promote_to_stage)
+    # First, we need to create a new ServiceNow Change Request
+    description = "Puppet CD4PE Automated Change Request for promoting commit #{report['scm']['commit']} to stage #{promote_to_stage}"
+    short_description = "Puppet CD4PE - promote #{report['scm']['commit'][0, 7]} to stage #{promote_to_stage}"
+    request_uri = "#{endpoint}/api/sn_chg_rest/v1/change/normal?description=#{description}&short_description=#{short_description}"
+    changereq_json = make_request(request_uri, :post, username, password)
+    changereq = JSON.parse(changereq_json.body)
+    # Next, we associate the CIs that Impact Analysis flagged into the ticket
     report['notes'].each do |ia|
-      unless ia['IA_verdict'] == 'safe'
-        bln_ia_safe_verdict = false
+      array_of_cis = []
+      ia['IA_node_reports'].each_key do |node|
+        ci_req_uri = "#{endpoint}/api/now/table/cmdb_ci?sysparm_query=name=#{node}"
+        ci_json = make_request(ci_req_uri, :get, username, password)
+        ci = JSON.parse(ci_json.body)
+        array_of_cis.push(ci['result'][0]['sys_id'])
       end
+      assoc_ci_uri = "#{endpoint}/api/sn_chg_rest/v1/change/#{changereq['result']['sys_id']['value']}/ci"
+      payload = { 'cmdb_ci_sys_ids' => array_of_cis.join(','), 'association_type' => 'affected' }
+      make_request(assoc_ci_uri, :post, username, password, payload)
     end
-    changereq['impact_analysis'] = bln_ia_safe_verdict ? 'safe' : 'unsafe'
-    make_request(endpoint, changereq)
+    change_req_url = "#{endpoint}/api/now/table/change_request/#{changereq['result']['sys_id']['value']}"
+    payload = { 'risk_impact_analysis' => report['log'], 'assignment_group' => 'Change Management' }
+    make_request(change_req_url, :patch, username, password, payload)
   end
 
-  def make_request(endpoint, payload)
+  def make_request(endpoint, type, username, password, payload = nil)
     uri = URI.parse(endpoint)
 
     connection = Net::HTTP.new(uri.host, uri.port)
@@ -37,9 +61,7 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
       connection.use_ssl = true
     end
 
-    connection.read_timeout = 15
-
-    headers = { 'Content-Type': 'application/json' }
+    connection.read_timeout = 60
 
     max_attempts = 3
     attempts = 0
@@ -47,10 +69,27 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
     while attempts < max_attempts
       attempts += 1
       begin
-        Puppet.debug("servicenow_devops_change_request: posting to #{endpoint}")
-        response = connection.post(uri.path, payload.to_json, headers)
+        Puppet.debug("servicenow_change_request: performing #{type} request to #{endpoint}")
+        case type
+        when :delete
+          request = Net::HTTP::Delete.new(uri.request_uri)
+        when :get
+          request = Net::HTTP::Get.new(uri.request_uri)
+        when :post
+          request = Net::HTTP::Post.new(uri.request_uri)
+          request.body = payload.to_json unless payload.nil?
+        when :patch
+          request = Net::HTTP::Patch.new(uri.request_uri)
+          request.body = payload.to_json unless payload.nil?
+        else
+          raise Puppet::Error, "servicenow_change_request#make_request called with invalid request type #{type}"
+        end
+        request.basic_auth(username, password)
+        request['Content-Type'] = 'application/json'
+        request['Accept'] = 'application/json'
+        response = connection.request(request)
       rescue SocketError => e
-        raise Puppet::Error, "Could not connect to the ServiceNow DevOps endpoint at #{uri.host}: #{e.inspect}", e.backtrace
+        raise Puppet::Error, "Could not connect to the ServiceNow endpoint at #{uri.host}: #{e.inspect}", e.backtrace
       end
 
       case response
@@ -61,7 +100,7 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
           Puppet.debug("Received #{response} error from #{uri.host}, attempting to retry. (Attempt #{attempts} of #{max_attempts})")
           Kernel.sleep(3)
         else
-          raise Puppet::Error, "Received #{attempts} server error responses from the ServiceNow DevOps endpoint at #{uri.host}: #{response.code} #{response.body}"
+          raise Puppet::Error, "Received #{attempts} server error responses from the ServiceNow endpoint at #{uri.host}: #{response.code} #{response.body}"
         end
       else
         return response

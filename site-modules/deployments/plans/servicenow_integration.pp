@@ -101,5 +101,5 @@ plan deployments::servicenow_integration(
   }
   $promote_stage_number = $promote_stage[0]['stageNum']
   # Trigger Change Request workflow in ServiceNow DevOps
-  deployments::servicenow_change_request($snow_endpoint, $report, $promote_stage_number)
+  deployments::servicenow_change_request($snow_endpoint, $snow_username, $snow_password, $report, $promote_stage_number)
 }
