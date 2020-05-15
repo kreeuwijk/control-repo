@@ -45,7 +45,7 @@ plan deployments::servicenow_devops_integration(
       fail_plan('not expecting to be here')
     }
     # Check if items in the pipeline stage are done
-    fail_plan('got to pipeline_stage_done')
+    fail_plan('got to pipeline_stage_done...')
     deployments::pipeline_stage_done($pipeline['eventsByStage'][$stage_num])
   }
   unless $loop_result {
