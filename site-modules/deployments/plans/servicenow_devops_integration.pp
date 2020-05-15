@@ -20,6 +20,7 @@ plan deployments::servicenow_devops_integration(
   # Set the stage number if we need to auto-detect it
   unless $report_stage {
     $stage_num = deployments::get_running_stage()
+    fail_plan("Got stage_num: ${$stage_num}")
   }
 
   # Find the pipeline ID for the commit SHA
@@ -42,6 +43,7 @@ plan deployments::servicenow_devops_integration(
         includes the stage to report on!", 'stage_not_found_error')
       }
       $stage_num = $stage.keys[0]
+      fail_plan('not expecting to be here')
     }
     # Check if items in the pipeline stage are done
     deployments::pipeline_stage_done($pipeline['eventsByStage'][$stage_num])
