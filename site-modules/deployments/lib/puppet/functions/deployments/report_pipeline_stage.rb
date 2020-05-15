@@ -56,7 +56,7 @@ Puppet::Functions.create_function(:'deployments::report_pipeline_stage') do
     bln_reporting_job_found = false
     pipeline['eventsByStage'][stage_number].each do |event|
       next unless event['eventType'] == 'DEPLOYMENT'
-      next unless event['deploymentPlanName'] == 'deployments::servicenow_integration'
+      next unless ['deployments::servicenow_integration', 'deployments::servicenow_devops_integration'].include?(event['deploymentPlanName'])
 
       bln_reporting_job_found = true
     end
@@ -88,7 +88,7 @@ Puppet::Functions.create_function(:'deployments::report_pipeline_stage') do
           bln_stage_success = false
         end
       elsif event['eventType'] == 'DEPLOYMENT'
-        next unless event['deploymentPlanName'] != 'deployments::servicenow_integration'
+        next if ['deployments::servicenow_integration', 'deployments::servicenow_devops_integration'].include?(event['deploymentPlanName'])
 
         eventinfo['eventName'] = event['deploymentPlanName'] + ' to ' + event['targetBranch']
         eventinfo['eventType'] = 'DEPLOY'

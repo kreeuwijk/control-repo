@@ -22,7 +22,7 @@ Puppet::Functions.create_function(:'deployments::pipeline_stage_done') do
                 when 'VMJOB' then jobstatus(event['jobStatus'])
                 when 'PEIMPACTANALYSIS' then event['state']
                 when 'DEPLOYMENT'
-                  if event['deploymentPlanName'] == 'deployments::servicenow_integration'
+                  if ['deployments::servicenow_integration', 'deployments::servicenow_devops_integration'].include?(event['deploymentPlanName'])
                     nil
                   else
                     event['deploymentState']
