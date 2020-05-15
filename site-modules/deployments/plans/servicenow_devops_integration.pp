@@ -27,7 +27,7 @@ plan deployments::servicenow_devops_integration(
   $pipeline_id = cd4pe_deployments::evaluate_result($pipeline_id_result)
 
   # Loop until items in the pipeline stage are done
-  $loop_result = ctrl::do_until('limit'=>8) || {
+  $loop_result = ctrl::do_until('limit'=>80) || {
     # Wait 15 seconds for each loop
     ctrl::sleep(15)
     # Get the current pipeline stage status (temporary variables that don't exist outside this loop)
