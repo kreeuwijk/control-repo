@@ -37,7 +37,7 @@ Puppet::Functions.create_function(:'deployments::servicenow_devops_change_reques
       connection.use_ssl = true
     end
 
-    connection.read_timeout = 15
+    connection.read_timeout = 60
 
     headers = { 'Content-Type': 'application/json' }
 
