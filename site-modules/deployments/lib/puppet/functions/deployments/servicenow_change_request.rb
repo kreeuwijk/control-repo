@@ -49,7 +49,12 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
       make_request(assoc_ci_uri, :post, username, password, payload)
     end
     change_req_url = "#{endpoint}/api/now/table/change_request/#{changereq['result']['sys_id']['value']}"
-    payload = { 'risk_impact_analysis' => report['log'], 'assignment_group' => 'Change Management' }
+    payload = {
+      'risk_impact_analysis' => report['log'],
+      'assignment_group' => 'Change Management',
+      'category' => 'CD4PE',
+      'state' => -4,
+    }
     make_request(change_req_url, :patch, username, password, payload)
   end
 
