@@ -15,7 +15,7 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
     # First, we need to create a new ServiceNow Change Request
     description = "Puppet CD4PE Automated Change Request for promoting commit #{report['scm']['commit']} to stage #{promote_to_stage}"
     short_description = "Puppet CD4PE - promote #{report['scm']['commit'][0, 7]} to stage #{promote_to_stage}"
-    request_uri = "#{endpoint}/api/sn_chg_rest/v1/change/normal?category=CD4PE&description=#{description}&short_description=#{short_description}"
+    request_uri = "#{endpoint}/api/sn_chg_rest/v1/change/normal?category=CD4PE&short_description=#{short_description}&description=#{description}"
     changereq_json = make_request(request_uri, :post, username, password)
     changereq = JSON.parse(changereq_json.body)
     # Next, we associate the CIs that Impact Analysis flagged into the ticket
@@ -48,7 +48,7 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
       end
     end
     closenotes['impact_analysis'] = bln_ia_safe_verdict ? 'safe' : 'unsafe'
-    change_req_url = "#{endpoint}/api/now/table/change_request/#{changereq['result']['sys_id']['value']}"
+    change_req_url = "#{endpoint}/api/sn_chg_rest/v1/change/#{changereq['result']['sys_id']['value']}"
     payload = {
       'risk_impact_analysis' => report['log'],
       'assignment_group' => 'Change Management',
