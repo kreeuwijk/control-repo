@@ -48,12 +48,11 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
       end
     end
     closenotes['impact_analysis'] = bln_ia_safe_verdict ? 'safe' : 'unsafe'
-    change_req_url = "#{endpoint}/api/sn_chg_rest/v1/change/normal/#{changereq['result']['sys_id']['value']}"
+    change_req_url = "#{endpoint}/api/sn_chg_rest/v1/change/normal/#{changereq['result']['sys_id']['value']}?state=assess"
     payload = {
       'risk_impact_analysis' => report['log'],
       'assignment_group' => 'Change Management',
       'close_notes' => closenotes,
-      'state' => -4,
     }
     make_request(change_req_url, :patch, username, password, payload)
   end
