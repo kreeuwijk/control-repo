@@ -52,7 +52,7 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
     payload = {
       'risk_impact_analysis' => report['log'],
       'assignment_group' => 'Change Management',
-      'close_notes' => closenotes,
+      'close_notes' => closenotes.to_json,
     }
     make_request(change_req_url, :patch, username, password, payload)
   end
