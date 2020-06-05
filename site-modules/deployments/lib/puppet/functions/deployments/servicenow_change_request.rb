@@ -20,6 +20,7 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
     raise Puppet::Error, "Received unexpected response from the ServiceNow endpoint: #{changereq_json.code} #{changereq_json.body}" unless changereq_json.is_a?(Net::HTTPSuccess)
 
     changereq = JSON.parse(changereq_json.body)
+
     # Next, we associate the CIs that Impact Analysis flagged into the ticket
     array_of_cis = []
     report['notes'].each do |ia|
@@ -39,11 +40,21 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
       payload = { 'cmdb_ci_sys_ids' => array_of_cis.join(','), 'association_type' => 'affected' }
       assoc_ci_response = make_request(assoc_ci_uri, :post, username, password, payload)
       raise Puppet::Error, "Received unexpected response from the ServiceNow endpoint: #{assoc_ci_response.code} #{assoc_ci_response.body}" unless assoc_ci_response.is_a?(Net::HTTPSuccess)
+
+      assoc_ci_worker = JSON.parse(assoc_ci_response.body)
+      assoc_ci_worker_uri = "#{endpoint}/api/sn_chg_rest/change/worker/#{assoc_ci_worker['result']['worker']['sysId']}"
+      while assoc_ci_worker['result']['state']['value'] < 3
+        sleep 3
+        assoc_ci_response = make_request(assoc_ci_worker_uri, :get, username, password)
+        assoc_ci_worker = JSON.parse(assoc_ci_response.body)
+      end
+      raise Puppet::Error, "Failed to associate CI's, got these error(s): #{assoc_ci_worker['result']['messages']['errorMessages']}" unless assoc_ci_worker['result']['state']['value'] == 3
     end
-    # Finally, we populate the remaining information into the change request
+
+    # Finally, we populate the remaining information into the change request, and activate it
     closenotes = {}
     closenotes['commitSHA']       = report['scm']['commit']
-    closenotes['deploymentId']    = report['build']['number']
+    closenotes['eventId']         = report['build']['number']
     closenotes['pipelineId']      = report['build']['pipeline']
     closenotes['workspace']       = report['build']['owner']
     closenotes['repoName']        = report['build']['repo_name']
@@ -63,8 +74,8 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
       'assignment_group' => 'Change Management',
       'close_notes' => closenotes.to_json,
     }
-    final_response = make_request(change_req_url, :patch, username, password, payload)
-    raise Puppet::Error, "Received unexpected response from the ServiceNow endpoint: #{final_response.code} #{final_response.body}" unless final_response.is_a?(Net::HTTPSuccess)
+    change_req_url_res = make_request(change_req_url, :patch, username, password, payload)
+    raise Puppet::Error, "Received unexpected response from the ServiceNow endpoint: #{change_req_url_res.code} #{change_req_url_res.body}" unless change_req_url_res.is_a?(Net::HTTPSuccess)
   end
 
   def make_request(endpoint, type, username, password, payload = nil)
