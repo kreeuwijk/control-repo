@@ -20,28 +20,7 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
     raise Puppet::Error, "Received unexpected response from the ServiceNow endpoint: #{changereq_json.code} #{changereq_json.body}" unless changereq_json.is_a?(Net::HTTPSuccess)
 
     changereq = JSON.parse(changereq_json.body)
-    # Next, we associate the CIs that Impact Analysis flagged into the ticket
-    array_of_cis = []
-    report['notes'].each do |ia|
-      ia['IA_node_reports'].each_key do |node|
-        ci_req_uri = "#{endpoint}/api/now/table/cmdb_ci?sysparm_query=name=#{node}"
-        ci_json = make_request(ci_req_uri, :get, username, password)
-        unless ci_json.is_a?(Net::HTTPOK)
-          Puppet.debug("servicenow_change_request: could not find CI #{node} in ServiceNow, skipping setting this as an affected CI...")
-          next
-        end
-        ci = JSON.parse(ci_json.body)
-        array_of_cis.push(ci['result'][0]['sys_id'])
-      end
-    end
-    if array_of_cis.count.positive?
-      assoc_ci_uri = "#{endpoint}/api/sn_chg_rest/v1/change/#{changereq['result']['sys_id']['value']}/ci"
-      payload = { 'cmdb_ci_sys_ids' => array_of_cis.join(','), 'association_type' => 'affected' }
-      assoc_ci_response = make_request(assoc_ci_uri, :post, username, password, payload)
-      raise Puppet::Error, "Request payload: #{payload}, Request response: #{assoc_ci_response.code} #{assoc_ci_response.body}"
-      raise Puppet::Error, "Received unexpected response from the ServiceNow endpoint: #{assoc_ci_response.code} #{assoc_ci_response.body}" unless assoc_ci_response.is_a?(Net::HTTPSuccess)
-    end
-    # Finally, we populate the remaining information into the change request
+    # Next, we populate the remaining information into the change request
     closenotes = {}
     closenotes['commitSHA']       = report['scm']['commit']
     closenotes['deploymentId']    = report['build']['number']
@@ -64,8 +43,29 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
       'assignment_group' => 'Change Management',
       'close_notes' => closenotes.to_json,
     }
-    final_response = make_request(change_req_url, :patch, username, password, payload)
-    raise Puppet::Error, "Received unexpected response from the ServiceNow endpoint: #{final_response.code} #{final_response.body}" unless final_response.is_a?(Net::HTTPSuccess)
+    change_req_url_res = make_request(change_req_url, :patch, username, password, payload)
+    raise Puppet::Error, "Received unexpected response from the ServiceNow endpoint: #{change_req_url_res.code} #{change_req_url_res.body}" unless change_req_url_res.is_a?(Net::HTTPSuccess)
+
+    # Finally, we associate the CIs that Impact Analysis flagged into the ticket
+    array_of_cis = []
+    report['notes'].each do |ia|
+      ia['IA_node_reports'].each_key do |node|
+        ci_req_uri = "#{endpoint}/api/now/table/cmdb_ci?sysparm_query=name=#{node}"
+        ci_json = make_request(ci_req_uri, :get, username, password)
+        unless ci_json.is_a?(Net::HTTPOK)
+          Puppet.debug("servicenow_change_request: could not find CI #{node} in ServiceNow, skipping setting this as an affected CI...")
+          next
+        end
+        ci = JSON.parse(ci_json.body)
+        array_of_cis.push(ci['result'][0]['sys_id'])
+      end
+    end
+    if array_of_cis.count.positive?
+      assoc_ci_uri = "#{endpoint}/api/sn_chg_rest/v1/change/#{changereq['result']['sys_id']['value']}/ci"
+      payload = { 'cmdb_ci_sys_ids' => array_of_cis.join(','), 'association_type' => 'affected' }
+      assoc_ci_response = make_request(assoc_ci_uri, :post, username, password, payload)
+      raise Puppet::Error, "Received unexpected response from the ServiceNow endpoint: #{assoc_ci_response.code} #{assoc_ci_response.body}" unless assoc_ci_response.is_a?(Net::HTTPSuccess)
+    end
   end
 
   def make_request(endpoint, type, username, password, payload = nil)
