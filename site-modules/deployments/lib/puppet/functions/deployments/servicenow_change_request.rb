@@ -28,7 +28,7 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
         ci_json = make_request(ci_req_uri, :get, username, password)
         unless ci_json.code == '202'
           Puppet.debug("servicenow_change_request: could not find CI #{node} in ServiceNow, skipping setting this as an affected CI...")
-          raise Puppet::Error, "Test error, got response: #{assoc_ci_response.code} #{assoc_ci_response.body}"
+          raise Puppet::Error, "Test error, got response: #{ci_json.code} #{ci_json.body}"
           # next
         end
         ci = JSON.parse(ci_json.body)
