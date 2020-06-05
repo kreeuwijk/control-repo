@@ -54,7 +54,7 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
     # Finally, we populate the remaining information into the change request, and activate it
     closenotes = {}
     closenotes['commitSHA']       = report['scm']['commit']
-    closenotes['deploymentId']    = report['build']['number']
+    closenotes['eventId']         = report['build']['number']
     closenotes['pipelineId']      = report['build']['pipeline']
     closenotes['workspace']       = report['build']['owner']
     closenotes['repoName']        = report['build']['repo_name']
