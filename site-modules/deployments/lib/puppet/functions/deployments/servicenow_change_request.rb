@@ -26,10 +26,9 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
       ia['IA_node_reports'].each_key do |node|
         ci_req_uri = "#{endpoint}/api/now/table/cmdb_ci?sysparm_query=name=#{node}"
         ci_json = make_request(ci_req_uri, :get, username, password)
-        unless ci_json.code == '202'
+        unless ci_json.code.is_a?(Net::HTTPOK)
           Puppet.debug("servicenow_change_request: could not find CI #{node} in ServiceNow, skipping setting this as an affected CI...")
-          raise Puppet::Error, "Test error, got response: #{ci_json.code} #{ci_json.body}"
-          # next
+          next
         end
         ci = JSON.parse(ci_json.body)
         array_of_cis.push(ci['result'][0]['sys_id'])
@@ -40,8 +39,6 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
       payload = { 'cmdb_ci_sys_ids' => array_of_cis.join(','), 'association_type' => 'affected' }
       assoc_ci_response = make_request(assoc_ci_uri, :post, username, password, payload)
       raise Puppet::Error, "Received unexpected response from the ServiceNow endpoint: #{assoc_ci_response.code} #{assoc_ci_response.body}" unless assoc_ci_response.is_a?(Net::HTTPSuccess)
-    else
-      raise Puppet::Error, "Affect CIs count is: #{array_of_cis.count}"
     end
     # Finally, we populate the remaining information into the change request
     closenotes = {}
