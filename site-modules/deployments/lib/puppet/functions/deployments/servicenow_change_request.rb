@@ -41,15 +41,14 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
       assoc_ci_response = make_request(assoc_ci_uri, :post, username, password, payload)
       raise Puppet::Error, "Received unexpected response from the ServiceNow endpoint: #{assoc_ci_response.code} #{assoc_ci_response.body}" unless assoc_ci_response.is_a?(Net::HTTPSuccess)
 
-      assoc_ci_worker_uri = "#{endpoint}/api/sn_chg_rest/change/worker/#{assoc_ci_response['result']['worker']['sysId']}"
-      assoc_ci_worker_response = {}
-      assoc_ci_worker_status = 0
-      while assoc_ci_worker_status < 3
+      assoc_ci_worker = JSON.parse(assoc_ci_response.body)
+      assoc_ci_worker_uri = "#{endpoint}/api/sn_chg_rest/change/worker/#{assoc_ci_worker['result']['worker']['sysId']}"
+      while assoc_ci_worker['result']['state']['value'] < 3
         sleep 3
-        assoc_ci_worker_response = make_request(assoc_ci_worker_uri, :get, username, password)
-        assoc_ci_worker_status = assoc_ci_worker_response['result']['state']['value']
+        assoc_ci_response = make_request(assoc_ci_worker_uri, :get, username, password)
+        assoc_ci_worker = JSON.parse(assoc_ci_response.body)
       end
-      raise Puppet::Error, "Failed to associate CI's, got these error(s): #{assoc_ci_worker_response['result']['messages']['errorMessages']}" unless assoc_ci_worker_status == 3
+      raise Puppet::Error, "Failed to associate CI's, got these error(s): #{assoc_ci_worker['result']['messages']['errorMessages']}" unless assoc_ci_worker['result']['state']['value'] == 3
     end
 
     # Finally, we populate the remaining information into the change request, and activate it
