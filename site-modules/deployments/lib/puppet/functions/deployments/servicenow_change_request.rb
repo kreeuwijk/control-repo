@@ -34,12 +34,13 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
         array_of_cis.push(ci['result'][0]['sys_id'])
       end
     end
-    if array_of_cis.count.positive?
-      assoc_ci_uri = "#{endpoint}/api/sn_chg_rest/v1/change/#{changereq['result']['sys_id']['value']}/ci"
-      payload = { 'cmdb_ci_sys_ids' => array_of_cis.join(','), 'association_type' => 'affected' }
-      assoc_ci_response = make_request(assoc_ci_uri, :post, username, password, payload)
-      raise Puppet::Error, "Received unexpected response from the ServiceNow endpoint: #{assoc_ci_response.code} #{assoc_ci_response.body}" unless assoc_ci_response.is_a?(Net::HTTPSuccess)
-    end
+    #if array_of_cis.count.positive?
+    assoc_ci_uri = "#{endpoint}/api/sn_chg_rest/v1/change/#{changereq['result']['sys_id']['value']}/ci"
+    payload = { 'cmdb_ci_sys_ids' => array_of_cis.join(','), 'association_type' => 'affected' }
+    assoc_ci_response = make_request(assoc_ci_uri, :post, username, password, payload)
+    raise Puppet::Error, "Request payload: #{payload}, Request response: #{assoc_ci_response.code} #{assoc_ci_response.body}"
+    raise Puppet::Error, "Received unexpected response from the ServiceNow endpoint: #{assoc_ci_response.code} #{assoc_ci_response.body}" unless assoc_ci_response.is_a?(Net::HTTPSuccess)
+    #end
     # Finally, we populate the remaining information into the change request
     closenotes = {}
     closenotes['commitSHA']       = report['scm']['commit']
