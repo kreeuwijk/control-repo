@@ -26,7 +26,7 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
       ia['IA_node_reports'].each_key do |node|
         ci_req_uri = "#{endpoint}/api/now/table/cmdb_ci?sysparm_query=name=#{node}"
         ci_json = make_request(ci_req_uri, :get, username, password)
-        unless ci_json.code.is_a?(Net::HTTPOK)
+        unless ci_json.is_a?(Net::HTTPOK)
           Puppet.debug("servicenow_change_request: could not find CI #{node} in ServiceNow, skipping setting this as an affected CI...")
           next
         end
