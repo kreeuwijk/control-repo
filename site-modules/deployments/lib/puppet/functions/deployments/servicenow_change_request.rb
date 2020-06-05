@@ -34,7 +34,7 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
         array_of_cis.push(ci['result'][0]['sys_id'])
       end
     end
-    raise Puppet::Error "Affected CI count: #{array_of_cis.count}, names: #{array_of_cis.join(',')}"
+    raise Puppet::Error, "Affected CI count: #{array_of_cis.count}, names: #{array_of_cis.join(',')}"
     if array_of_cis.count.positive?
       assoc_ci_uri = "#{endpoint}/api/sn_chg_rest/v1/change/#{changereq['result']['sys_id']['value']}/ci"
       payload = { 'cmdb_ci_sys_ids' => array_of_cis.join(','), 'association_type' => 'affected' }
