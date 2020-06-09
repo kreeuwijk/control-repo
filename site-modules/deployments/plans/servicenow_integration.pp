@@ -4,7 +4,8 @@ plan deployments::servicenow_integration(
   Optional[String] $snow_password = 'c_g!jc.24pULC7KU',
   Optional[Integer] $max_changes_per_node = 10,
   Optional[String] $report_stage = undef,
-  Optional[String] $stage_to_promote_to = undef
+  Optional[String] $stage_to_promote_to = undef,
+  Optional[String] $assignment_group = 'Change Management'
 ){
   # Read relevant CD4PE environment variables
   $repo_type         = system::env('REPO_TYPE')
@@ -101,5 +102,5 @@ plan deployments::servicenow_integration(
   }
   $promote_stage_number = $promote_stage[0]['stageNum']
   # Trigger Change Request workflow in ServiceNow DevOps
-  deployments::servicenow_change_request($snow_endpoint, $snow_username, $snow_password, $report, $promote_stage_number)
+  deployments::servicenow_change_request($snow_endpoint, $snow_username, $snow_password, $report, $promote_stage_number, $assignment_group)
 }
