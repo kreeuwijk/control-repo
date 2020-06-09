@@ -9,9 +9,10 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
     required_param 'String', :password
     required_param 'Hash', :report
     required_param 'Integer', :promote_to_stage
+    required_param 'String', :assignment_group
   end
 
-  def servicenow_change_request(endpoint, username, password, report, promote_to_stage)
+  def servicenow_change_request(endpoint, username, password, report, promote_to_stage, assignment_group)
     # First, we need to create a new ServiceNow Change Request
     description = "Puppet CD4PE Automated Change Request for promoting commit #{report['scm']['commit']} to stage #{promote_to_stage}"
     short_description = "Puppet CD4PE - promote #{report['scm']['commit'][0, 7]} to stage #{promote_to_stage}"
@@ -52,6 +53,7 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
     end
 
     # Finally, we populate the remaining information into the change request, and activate it
+    # Build close notes, used for automated promotion later
     closenotes = {}
     closenotes['commitSHA']       = report['scm']['commit']
     closenotes['eventId']         = report['build']['number']
@@ -68,10 +70,22 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
       end
     end
     closenotes['impact_analysis'] = bln_ia_safe_verdict ? 'safe' : 'unsafe'
+
+    # Get sys_id of given assignment_group
+    assignment_group_url = "#{endpoint}/api/now/table/sys_user_group?sysparm_query=name=#{assignment_group}"
+    assignment_group_response = make_request(assignment_group_url, :get, username, password)
+    raise Puppet::Error, "Received unexpected response from the ServiceNow endpoint: #{assignment_group_response.code} #{assignment_group_response.body}" unless assignment_group_response.is_a?(Net::HTTPOK)
+
+    arr_assignment_groups = JSON.parse(assignment_group_response.body)['result']
+    raise Puppet::Error, "No Assignment Group named '#{assignment_group}' was found in ServiceNow!" unless arr_assignment_groups.count.positive?
+
+    assignment_group_sys_id = arr_assignment_groups[0]['sys_id']
+
+    # Update Change Request with additional info, and start the approval process
     change_req_url = "#{endpoint}/api/sn_chg_rest/v1/change/normal/#{changereq['result']['sys_id']['value']}?state=assess"
     payload = {
       'risk_impact_analysis' => report['log'],
-      'assignment_group' => 'Change Management',
+      'assignment_group' => assignment_group_sys_id,
       'close_notes' => closenotes.to_json,
     }
     change_req_url_res = make_request(change_req_url, :patch, username, password, payload)
