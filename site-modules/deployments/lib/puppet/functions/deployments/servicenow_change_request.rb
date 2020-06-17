@@ -10,9 +10,10 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
     required_param 'Hash', :report
     required_param 'Integer', :promote_to_stage
     required_param 'String', :assignment_group
+    required_param 'String', :connection_alias
   end
 
-  def servicenow_change_request(endpoint, username, password, report, promote_to_stage, assignment_group)
+  def servicenow_change_request(endpoint, username, password, report, promote_to_stage, assignment_group, connection_alias)
     # First, we need to create a new ServiceNow Change Request
     description = "Puppet%20-%20Automated%20Change%20Request%20for%20promoting%20commit%20#{report['scm']['commit']}%20to%20stage%20#{promote_to_stage}"
     short_description = "Puppet%20-%20Promote%20#{report['scm']['commit'][0, 7]}%20to%20stage%20#{promote_to_stage}"
@@ -63,6 +64,7 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
     closenotes['repoType']        = report['build']['repo_type']
     closenotes['promoteToStage']  = promote_to_stage
     closenotes['scm_branch']      = report['scm']['branch']
+    closenotes['connection']      = connection_alias
     bln_ia_safe_verdict = true
     report['notes'].each do |ia|
       unless ia['IA_verdict'] == 'safe'
