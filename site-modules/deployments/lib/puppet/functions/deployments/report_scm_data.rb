@@ -11,10 +11,11 @@ Puppet::Functions.create_function(:'deployments::report_scm_data') do
                             else
                               ''
                             end
-    report['scm']['branch'] = pipeline['branch']
-    report['scm']['commit'] = pipeline['commitId']
-    report['scm']['changes'] = []
-    report['scm']['culprits'] = []
+    report['scm']['branch']      = pipeline['branch']
+    report['scm']['commit']      = pipeline['commitId']
+    report['scm']['changes']     = []
+    report['scm']['culprits']    = []
+    report['scm']['description'] = pipeline['description']
     report
   end
 end
