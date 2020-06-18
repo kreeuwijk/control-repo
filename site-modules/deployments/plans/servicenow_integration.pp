@@ -1,10 +1,10 @@
 plan deployments::servicenow_integration(
   String $snow_endpoint,
-  Optional[String] $snow_username = 'admin',
-  Optional[String] $snow_password = 'c_g!jc.24pULC7KU',
+  String $snow_username,
+  String $snow_password,
+  String $stage_to_promote_to = undef,
   Optional[Integer] $max_changes_per_node = 10,
-  Optional[String] $report_stage = undef,
-  Optional[String] $stage_to_promote_to = undef,
+  Optional[String] $report_stage = 'Impact Analysis',
   Optional[String] $assignment_group = 'Change Management',
   Optional[String] $connection_alias = 'Puppet_Code',
 ){
