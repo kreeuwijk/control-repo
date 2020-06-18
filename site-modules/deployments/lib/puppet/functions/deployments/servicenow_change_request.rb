@@ -15,8 +15,8 @@ Puppet::Functions.create_function(:'deployments::servicenow_change_request') do
 
   def servicenow_change_request(endpoint, username, password, report, promote_to_stage, assignment_group, connection_alias)
     # First, we need to create a new ServiceNow Change Request
-    description = "Puppet%20-%20Automated%20Change%20Request%20for%20promoting%20commit%20#{report['scm']['commit']}%20to%20stage%20#{promote_to_stage}"
-    short_description = "Puppet%20-%20Promote%20#{report['scm']['commit'][0, 7]}%20to%20stage%20#{promote_to_stage}"
+    description = "Puppet%20-%20Automated%20Change%20Request%20for%20promoting%20commit%20#{report['scm']['commit'][0, 7]}%20('#{report['scm']['description']}')%20to%20stage%20#{promote_to_stage}"
+    short_description = "Puppet%20Code%20-%20'#{report['scm']['description']}'%20to%20stage%20#{promote_to_stage}"
     request_uri = "#{endpoint}/api/sn_chg_rest/v1/change/normal?category=Puppet%20Code&short_description=#{short_description}&description=#{description}"
     changereq_json = make_request(request_uri, :post, username, password)
     raise Puppet::Error, "Received unexpected response from the ServiceNow endpoint: #{changereq_json.code} #{changereq_json.body}" unless changereq_json.is_a?(Net::HTTPSuccess)
